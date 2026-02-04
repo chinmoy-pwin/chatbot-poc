@@ -108,9 +108,7 @@ export default function ChatTest() {
       const formData = new FormData();
       formData.append('audio_file', audioBlob, 'recording.webm');
 
-      const response = await axios.post(`${API}/voice/stt`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const response = await axios.post(`${API}/voice/stt`, formData);
 
       setInput(response.data.transcribed_text);
       toast.success("Audio transcribed");
