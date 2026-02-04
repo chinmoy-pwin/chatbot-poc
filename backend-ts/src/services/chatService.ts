@@ -1,22 +1,51 @@
 import OpenAI from 'openai';
-import { KnowledgeFile } from '../models/KnowledgeFile';
-import { ScrapedContent } from '../models/ScrapedContent';
+import { PineconeService } from './pineconeService';
 
 export class ChatService {
   private openai: OpenAI;
+  private pineconeService: PineconeService | null;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, pineconeApiKey?: string, pineconeIndex?: string) {
     this.openai = new OpenAI({
       apiKey: apiKey,
       baseURL: 'https://api.emergent.sh/openai/v1'
     });
+
+    // Initialize Pinecone if credentials provided
+    if (pineconeApiKey && pineconeIndex) {
+      this.pineconeService = new PineconeService(pineconeApiKey, pineconeIndex, apiKey);
+      // Initialize index in background
+      this.pineconeService.initializeIndex().catch(console.error);
+    } else {
+      this.pineconeService = null;
+      console.warn('Pinecone not configured, using fallback context retrieval');
+    }
   }
 
   async getKnowledgeContext(customerId: string, query: string): Promise<{ context: string; sources: string[] }> {
-    // Get KB files
-    const kbFiles = await KnowledgeFile.find({ customer_id: customerId }).limit(5).lean();
+    // Use Pinecone if available
+    if (this.pineconeService) {
+      try {
+        const results = await this.pineconeService.queryRelevantContext(customerId, query, 5);
+        
+        const context = results.map((r, idx) => 
+          `[${idx + 1}] From ${r.source}:\n${r.text}`
+        ).join('\n\n');
 
-    // Get scraped content
+        const sources = [...new Set(results.map(r => r.source))];
+
+        return { context, sources };
+      } catch (error) {
+        console.error('Pinecone query failed, using fallback:', error);
+        // Fall through to fallback method
+      }
+    }
+
+    // Fallback: Use simple MongoDB retrieval
+    const { KnowledgeFile } = await import('../models/KnowledgeFile');
+    const { ScrapedContent } = await import('../models/ScrapedContent');
+
+    const kbFiles = await KnowledgeFile.find({ customer_id: customerId }).limit(5).lean();
     const scrapedContent = await ScrapedContent.find({ customer_id: customerId }).limit(5).lean();
 
     const allContent: string[] = [];
