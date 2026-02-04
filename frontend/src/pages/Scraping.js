@@ -90,8 +90,9 @@ export default function Scraping() {
 
     setScraping(true);
     try {
-      const response = await axios.post(`${API}/scrape/manual`, validUrls, {
-        params: { customer_id: customerId }
+      const response = await axios.post(`${API}/scrape/manual`, {
+        customer_id: customerId,
+        urls: validUrls
       });
       toast.success(`Successfully scraped ${response.data.results.length} pages`);
       loadScrapedContent(customerId);
