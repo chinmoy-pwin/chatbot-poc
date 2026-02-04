@@ -8,7 +8,7 @@ export class ChatService {
   constructor(apiKey: string, pineconeApiKey?: string, pineconeIndex?: string) {
     this.openai = new OpenAI({
       apiKey: apiKey,
-      baseURL: 'https://api.emergent.sh/openai/v1'
+      baseURL: process.env.OPENAI_BASE_URL || 'https://api.emergent.sh/openai/v1'
     });
 
     // Initialize Pinecone if credentials provided
