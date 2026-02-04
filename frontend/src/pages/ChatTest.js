@@ -154,46 +154,52 @@ export default function ChatTest() {
                 Start a conversation by typing a message below
               </div>
             ) : (
-              messages.map((message, index) => (
-                <div
-                  key={index}
-                  data-testid={`message-${index}`}
-                  className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-                >
+              messages && messages.length > 0 ? messages.map((message, index) => {
+                const msgRole = message.role;
+                const msgContent = message.content;
+                const msgSources = message.sources;
+                const msgKey = `msg-${index}`;
+                return (
                   <div
-                    className={`max-w-[70%] rounded-2xl px-4 py-3 ${
-                      message.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-foreground"
-                    }`}
+                    key={msgKey}
+                    data-testid={`message-${index}`}
+                    className={`flex ${msgRole === "user" ? "justify-end" : "justify-start"}`}
                   >
-                    <p className="whitespace-pre-wrap" data-testid={`message-content-${index}`}>{message.content}</p>
-                    {message.sources && message.sources.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-border/50">
-                        <p className="text-xs opacity-70">Sources:</p>
-                        <ul className="text-xs opacity-70 mt-1">
-                          {message.sources.map((source, i) => (
-                            <li key={i}>• {source}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {message.role === "assistant" && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        data-testid={`speak-btn-${index}`}
-                        onClick={() => speakText(message.content)}
-                        disabled={isSpeaking}
-                        className="mt-2 h-6 px-2"
-                      >
-                        <Volume2 className="h-3 w-3 mr-1" />
-                        Speak
-                      </Button>
-                    )}
+                    <div
+                      className={`max-w-[70%] rounded-2xl px-4 py-3 ${
+                        msgRole === "user"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-foreground"
+                      }`}
+                    >
+                      <p className="whitespace-pre-wrap" data-testid={`message-content-${index}`}>{msgContent}</p>
+                      {msgSources && msgSources.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-border/50">
+                          <p className="text-xs opacity-70">Sources:</p>
+                          <ul className="text-xs opacity-70 mt-1">
+                            {msgSources.map((source, i) => (
+                              <li key={i}>• {source}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {msgRole === "assistant" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          data-testid={`speak-btn-${index}`}
+                          onClick={() => speakText(msgContent)}
+                          disabled={isSpeaking}
+                          className="mt-2 h-6 px-2"
+                        >
+                          <Volume2 className="h-3 w-3 mr-1" />
+                          Speak
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              }) : null
             )}
             {loading && (
               <div className="flex justify-start" data-testid="loading-indicator">
