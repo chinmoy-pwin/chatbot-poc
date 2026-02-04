@@ -225,23 +225,28 @@ export default function Scraping() {
             </div>
           ) : (
             <div className="space-y-2">
-              {scrapedContent.map((item) => (
-                <div
-                  key={item.id}
-                  data-testid={`scraped-item-${item.id}`}
-                  className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors duration-200"
-                >
-                  <div className="flex items-center gap-3">
-                    <Globe className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="font-medium" data-testid={`scraped-url-${item.id}`}>{item.url}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Scraped {new Date(item.scraped_at).toLocaleDateString()}
-                      </p>
+              {scrapedContent && scrapedContent.length > 0 ? scrapedContent.map((item) => {
+                const itemId = item.id;
+                const itemUrl = item.url;
+                const scrapedAt = item.scraped_at;
+                return (
+                  <div
+                    key={itemId}
+                    data-testid={`scraped-item-${itemId}`}
+                    className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors duration-200"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Globe className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="font-medium" data-testid={`scraped-url-${itemId}`}>{itemUrl}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Scraped {new Date(scrapedAt).toLocaleDateString()}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              }) : null}
             </div>
           )}
         </CardContent>
