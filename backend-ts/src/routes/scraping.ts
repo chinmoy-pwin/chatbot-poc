@@ -96,6 +96,17 @@ router.post('/manual', async (req, res) => {
         });
 
         await scraped.save();
+
+        // Upsert to Pinecone in background
+        if (pineconeService) {
+          pineconeService.upsertScrapedContent(
+            scraped.id,
+            customer_id,
+            url,
+            content
+          ).catch(err => console.error('Pinecone upsert failed:', err));
+        }
+
         results.push({ url, status: 'success', content_length: content.length });
       } catch (error) {
         results.push({ url, status: 'error', error: String(error) });
