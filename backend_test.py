@@ -150,10 +150,9 @@ class KbaseAITester:
         return self.run_test(
             "Manual Scrape", 
             "POST", 
-            "scrape/manual", 
+            f"scrape/manual?customer_id={self.customer_id}", 
             200, 
-            data=urls,
-            params={"customer_id": self.customer_id}
+            data=urls
         )
 
     def test_get_scraped_content(self):
