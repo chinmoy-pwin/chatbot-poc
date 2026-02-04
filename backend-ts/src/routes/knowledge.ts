@@ -94,6 +94,13 @@ router.delete('/:file_id', async (req, res) => {
     if (result.deletedCount === 0) {
       return res.status(404).json({ detail: 'File not found' });
     }
+
+    // Delete from Pinecone in background
+    if (pineconeService) {
+      pineconeService.deleteKnowledgeFile(req.params.file_id)
+        .catch(err => console.error('Pinecone delete failed:', err));
+    }
+
     res.json({ message: 'File deleted successfully' });
   } catch (error) {
     res.status(500).json({ detail: `Error deleting file: ${error}` });
