@@ -154,6 +154,16 @@ async function scrapeUrlsForCustomer(customerId: string) {
           scraped_at: new Date()
         });
         await scraped.save();
+
+        // Upsert to Pinecone in background
+        if (pineconeService) {
+          pineconeService.upsertScrapedContent(
+            scraped.id,
+            customerId,
+            url,
+            content
+          ).catch(err => console.error('Auto-scrape Pinecone upsert failed:', err));
+        }
       } catch (error) {
         console.error(`Auto-scrape failed for ${url}:`, error);
       }
