@@ -4,9 +4,19 @@ import cron from 'node-cron';
 import { ScrapeConfig } from '../models/ScrapeConfig';
 import { ScrapedContent } from '../models/ScrapedContent';
 import { WebScraper } from '../utils/webScraper';
+import { PineconeService } from '../services/pineconeService';
 
 const router = Router();
 const scheduledJobs = new Map<string, cron.ScheduledTask>();
+
+// Initialize Pinecone service
+const pineconeService = process.env.PINECONE_API_KEY && process.env.PINECONE_INDEX_NAME
+  ? new PineconeService(
+      process.env.PINECONE_API_KEY,
+      process.env.PINECONE_INDEX_NAME,
+      process.env.OPENAI_API_KEY || ''
+    )
+  : null;
 
 // Create scrape config
 router.post('/config', async (req, res) => {
