@@ -1,0 +1,132 @@
+{
+  "brand_identity": {
+    "name": "KbaseAI",
+    "archetype": "Organic & Earthy (Trust, Growth, Calm)",
+    "core_values": ["Reliability", "Human-Centric", "Clarity"],
+    "visual_style": "Swiss Minimalist with Warm Tones",
+    "theme_mode": "light"
+  },
+  "typography": {
+    "font_family": {
+      "headings": "Outfit, sans-serif",
+      "body": "DM Sans, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "weights": {
+      "headings": "600",
+      "body": "400",
+      "bold": "700"
+    },
+    "cdn_links": [
+      "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,400;500;700&display=swap"
+    ]
+  },
+  "colors": {
+    "palette": {
+      "primary": "#1A4D2E",
+      "primary_foreground": "#FFFFFF",
+      "secondary": "#F3F2ED",
+      "secondary_foreground": "#1A4D2E",
+      "accent": "#D4F853",
+      "accent_foreground": "#1A4D2E",
+      "background": "#FDFCF8",
+      "foreground": "#1A1A1A",
+      "muted": "#F0F0F0",
+      "muted_foreground": "#666666",
+      "border": "#E5E5E5",
+      "input": "#E5E5E5",
+      "ring": "#1A4D2E"
+    },
+    "gradients": {
+      "hero": "linear-gradient(135deg, #FDFCF8 0%, #F3F2ED 100%)",
+      "card_hover": "linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(212, 248, 83, 0.1) 100%)"
+    }
+  },
+  "layout": {
+    "spacing": {
+      "container_padding": "p-6 md:p-12 lg:p-24",
+      "section_gap": "gap-12 md:gap-24",
+      "element_gap": "gap-4 md:gap-8"
+    },
+    "border_radius": {
+      "default": "0.75rem",
+      "button": "9999px",
+      "card": "1rem"
+    },
+    "grid_system": {
+      "marketing": "grid-cols-1 md:grid-cols-12 gap-8",
+      "dashboard": "grid-cols-1 md:grid-cols-4 gap-6"
+    }
+  },
+  "components": {
+    "buttons": {
+      "default": "rounded-full px-8 py-3 font-medium transition-all duration-300 hover:scale-105 active:scale-95",
+      "primary": "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20",
+      "secondary": "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+      "outline": "border-2 border-primary text-primary hover:bg-primary hover:text-white"
+    },
+    "cards": {
+      "style": "bg-white border border-border/50 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1",
+      "padding": "p-6 md:p-8"
+    },
+    "inputs": {
+      "style": "bg-white border-border focus:ring-2 focus:ring-primary/20 focus:border-primary rounded-lg h-12 px-4"
+    }
+  },
+  "assets": {
+    "images": {
+      "hero_abstract": "https://images.unsplash.com/photo-1754795192466-abe08a4d7c03?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "office_minimal": "https://images.unsplash.com/photo-1666618207644-4de0226a3f85?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "team_collaboration": "https://images.unsplash.com/photo-1758691736975-9f7f643d178e?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "feature_abstract": "https://images.unsplash.com/photo-1737574990049-264694ce17a0?crop=entropy&cs=srgb&fm=jpg&q=85"
+    },
+    "icons": "lucide-react"
+  },
+  "motion": {
+    "page_transition": {
+      "initial": { "opacity": 0, "y": 20 },
+      "animate": { "opacity": 1, "y": 0 },
+      "exit": { "opacity": 0, "y": -20 },
+      "transition": { "duration": 0.4, "ease": "easeOut" }
+    },
+    "hover_effects": "transition-transform duration-200 ease-out"
+  },
+  "tech_stack": {
+    "framework": "React",
+    "styling": "Tailwind CSS",
+    "ui_library": "Shadcn UI",
+    "icons": "Lucide React",
+    "animation": "Framer Motion",
+    "toast": "Sonner"
+  },
+  "instructions_to_main_agent": [
+    "1. INSTALL FONTS: Add the Google Fonts link to public/index.html immediately.",
+    "2. CONFIGURE TAILWIND: Update tailwind.config.js with the colors and border radius defined above.",
+    "3. GLOBAL STYLES: Update index.css to set the base font-family to 'DM Sans' and headings to 'Outfit'. Set body background to #FDFCF8.",
+    "4. COMPONENT OVERRIDES: When using Shadcn components, override default rounded-md with rounded-xl or rounded-full as per guidelines.",
+    "5. LAYOUT: Use the 'Bento Grid' approach for the landing page features section.",
+    "6. IMAGES: Use the provided Unsplash URLs for placeholders. Do not use empty placeholders.",
+    "7. DATA-TESTID: Ensure every interactive element (buttons, inputs) has a data-testid attribute.",
+    "8. WHITE LABELING: Use CSS variables for colors so they can be easily swapped for customers later."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy",
+    "Use glass-morphism effects with backdrop filters (12-24px blur)",
+    "You MUST NOT apply universal transition. Eg: transition: all. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; } in the css file. This disrupts the human natural reading flow of text",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style",
+    "NEVER: use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯📚🎭🎬🎪🎉🎊🎁🎀🎂🍰🎈🎨🎰💰💵💳🏦💎🪙💸🤑📊📈📉💹🔢🏆🥇 etc for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Main agent relies on these image URLs. Missing categories (especially sponsor logos) = main agent will use placeholder text which is FORBIDDEN",
+    "Prioritize using pre-existing components from src/components/ui when applicable",
+    "Create new components that match the style and conventions of existing components when needed",
+    "Examine existing components to understand the project's component patterns before creating new ones",
+    "Components MUST use named exports (export const ComponentName = ...)",
+    "Pages MUST use default exports (export default function PageName() {...})",
+    "Use sonner for toasts. Sonner component are located in /app/src/components/ui/sonner.tsx"
+  ]
+}
