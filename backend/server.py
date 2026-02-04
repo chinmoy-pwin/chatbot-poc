@@ -119,6 +119,10 @@ class TTSResponse(BaseModel):
     text: str
     voice_id: str
 
+class ManualScrapeRequest(BaseModel):
+    customer_id: str
+    urls: List[str]
+
 class STTResponse(BaseModel):
     transcribed_text: str
     filename: str
