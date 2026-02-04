@@ -138,32 +138,38 @@ export default function KnowledgeBase() {
             </div>
           ) : (
             <div className="space-y-2">
-              {files.map((file) => (
-                <div
-                  key={file.id}
-                  data-testid={`file-${file.id}`}
-                  className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors duration-200"
-                >
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="font-medium" data-testid={`filename-${file.id}`}>{file.filename}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {file.file_type.toUpperCase()} • Uploaded {new Date(file.uploaded_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    data-testid={`delete-file-${file.id}`}
-                    onClick={() => deleteFile(file.id)}
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              {files && files.length > 0 ? files.map((file) => {
+                const fileId = file.id;
+                const filename = file.filename;
+                const fileType = file.file_type;
+                const uploadedAt = file.uploaded_at;
+                return (
+                  <div
+                    key={fileId}
+                    data-testid={`file-${fileId}`}
+                    className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors duration-200"
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="font-medium" data-testid={`filename-${fileId}`}>{filename}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {fileType.toUpperCase()} • Uploaded {new Date(uploadedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      data-testid={`delete-file-${fileId}`}
+                      onClick={() => deleteFile(fileId)}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              }) : null}
             </div>
           )}
         </CardContent>
