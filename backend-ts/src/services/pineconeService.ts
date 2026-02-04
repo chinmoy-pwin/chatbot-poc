@@ -20,7 +20,7 @@ export class PineconeService {
     this.pinecone = new Pinecone({ apiKey });
     this.openai = new OpenAI({ 
       apiKey: openaiKey,
-      baseURL: 'https://api.emergent.sh/openai/v1'
+      baseURL: process.env.OPENAI_BASE_URL || 'https://api.emergent.sh/openai/v1'
     });
     this.indexName = indexName;
   }
