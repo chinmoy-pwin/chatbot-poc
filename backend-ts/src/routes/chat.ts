@@ -4,7 +4,11 @@ import { Conversation } from '../models/Conversation';
 import { ChatService } from '../services/chatService';
 
 const router = Router();
-const chatService = new ChatService(process.env.OPENAI_API_KEY || '');
+const chatService = new ChatService(
+  process.env.OPENAI_API_KEY || '',
+  process.env.PINECONE_API_KEY,
+  process.env.PINECONE_INDEX_NAME
+);
 
 // Chat endpoint
 router.post('/', async (req, res) => {
