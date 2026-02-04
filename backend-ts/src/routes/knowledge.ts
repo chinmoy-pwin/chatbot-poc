@@ -3,9 +3,24 @@ import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import { KnowledgeFile } from '../models/KnowledgeFile';
 import { FileProcessor } from '../utils/fileProcessor';
+import { PineconeService } from '../services/pineconeService';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
+
+// Initialize Pinecone service
+const pineconeService = process.env.PINECONE_API_KEY && process.env.PINECONE_INDEX_NAME
+  ? new PineconeService(
+      process.env.PINECONE_API_KEY,
+      process.env.PINECONE_INDEX_NAME,
+      process.env.OPENAI_API_KEY || ''
+    )
+  : null;
+
+// Initialize Pinecone index on startup
+if (pineconeService) {
+  pineconeService.initializeIndex().catch(console.error);
+}
 
 // Upload knowledge file
 router.post('/upload', upload.single('file'), async (req, res) => {
@@ -31,6 +46,16 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     });
 
     await kbFile.save();
+
+    // Upsert to Pinecone in background
+    if (pineconeService) {
+      pineconeService.upsertKnowledgeFile(
+        kbFile.id,
+        customer_id,
+        req.file.originalname,
+        content
+      ).catch(err => console.error('Pinecone upsert failed:', err));
+    }
 
     res.json({
       message: 'File uploaded successfully',
