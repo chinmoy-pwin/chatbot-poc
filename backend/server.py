@@ -336,12 +336,12 @@ async def get_scrape_configs(customer_id: str):
     return configs
 
 @api_router.post("/scrape/manual")
-async def manual_scrape(customer_id: str, urls: List[str]):
+async def manual_scrape(request: ManualScrapeRequest):
     results = []
-    for url in urls:
+    for url in request.urls:
         content = await scrape_website(url)
         scraped = ScrapedContent(
-            customer_id=customer_id,
+            customer_id=request.customer_id,
             url=url,
             content=content
         )
