@@ -88,7 +88,7 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
-            {customers.map((customer) => (
+            {customers && customers.length > 0 && customers.map((customer) => (
               <Button
                 key={customer.id}
                 data-testid={`customer-${customer.id}`}
