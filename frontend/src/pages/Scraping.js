@@ -119,27 +119,30 @@ export default function Scraping() {
           {/* URL Inputs */}
           <div className="space-y-3">
             <Label>Website URLs</Label>
-            {urls.map((url, index) => (
-              <div key={index} className="flex gap-2">
-                <Input
-                  data-testid={`url-input-${index}`}
-                  placeholder="https://example.com/blog"
-                  value={url}
-                  onChange={(e) => updateUrl(index, e.target.value)}
-                  className="flex-1"
-                />
-                {urls.length > 1 && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    data-testid={`remove-url-${index}`}
-                    onClick={() => removeUrl(index)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
+            {urls && urls.length > 0 ? urls.map((url, index) => {
+              const urlKey = `url-${index}`;
+              return (
+                <div key={urlKey} className="flex gap-2">
+                  <Input
+                    data-testid={`url-input-${index}`}
+                    placeholder="https://example.com/blog"
+                    value={url}
+                    onChange={(e) => updateUrl(index, e.target.value)}
+                    className="flex-1"
+                  />
+                  {urls.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      data-testid={`remove-url-${index}`}
+                      onClick={() => removeUrl(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              );
+            }) : null}
             <Button
               variant="outline"
               data-testid="add-url-btn"
