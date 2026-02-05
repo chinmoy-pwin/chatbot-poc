@@ -5,6 +5,7 @@ import ScrapeConfig from '../models/ScrapeConfig';
 import ScrapedContent from '../models/ScrapedContent';
 import { WebScraper } from '../utils/webScraper';
 import { PineconeService } from '../services/pineconeService';
+import { authenticate, AuthRequest, canAccessCustomer } from '../middleware/auth';
 
 const router = Router();
 const scheduledJobs = new Map<string, cron.ScheduledTask>();
@@ -18,10 +19,15 @@ const pineconeService = process.env.PINECONE_API_KEY && process.env.PINECONE_IND
     )
   : null;
 
-// Create scrape config
-router.post('/config', async (req, res) => {
+// Create scrape config (Admin or customer owner)
+router.post('/config', authenticate, async (req: AuthRequest, res) => {
   try {
     const { customer_id, urls, schedule, auto_scrape } = req.body;
+
+    // Check authorization
+    if (req.user?.role !== 'admin' && req.user?.customer_id !== customer_id) {
+      return res.status(403).json({ detail: 'You can only manage your own scraping configs' });
+    }
 
     const config = await ScrapeConfig.create({
       id: uuidv4(),
@@ -52,8 +58,8 @@ router.post('/config', async (req, res) => {
   }
 });
 
-// Get scrape configs
-router.get('/config/:customer_id', async (req, res) => {
+// Get scrape configs (Admin or customer owner)
+router.get('/config/:customer_id', authenticate, canAccessCustomer, async (req: AuthRequest, res) => {
   try {
     const configs = await ScrapeConfig.findAll({
       where: { customer_id: req.params.customer_id },
@@ -73,13 +79,18 @@ router.get('/config/:customer_id', async (req, res) => {
   }
 });
 
-// Manual scrape
-router.post('/manual', async (req, res) => {
+// Manual scrape (Admin or customer owner)
+router.post('/manual', authenticate, async (req: AuthRequest, res) => {
   try {
     const { customer_id, urls } = req.body;
 
     if (!customer_id || !urls || !Array.isArray(urls)) {
       return res.status(400).json({ detail: 'customer_id and urls array are required' });
+    }
+
+    // Check authorization
+    if (req.user?.role !== 'admin' && req.user?.customer_id !== customer_id) {
+      return res.status(403).json({ detail: 'You can only scrape for your own account' });
     }
 
     const results = [];
@@ -117,8 +128,8 @@ router.post('/manual', async (req, res) => {
   }
 });
 
-// Get scraped content
-router.get('/content/:customer_id', async (req, res) => {
+// Get scraped content (Admin or customer owner)
+router.get('/content/:customer_id', authenticate, canAccessCustomer, async (req: AuthRequest, res) => {
   try {
     const content = await ScrapedContent.findAll({
       where: { customer_id: req.params.customer_id },
