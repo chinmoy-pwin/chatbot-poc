@@ -1,19 +1,72 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import { DataTypes, Model, Optional } from 'sequelize';
+import sequelize from '../config/database';
+import Customer from './Customer';
 
-export interface IScrapedContent extends Document {
+interface ScrapedContentAttributes {
   id: string;
   customer_id: string;
   url: string;
   content: string;
-  scraped_at: Date;
+  scraped_at?: Date;
+  updated_at?: Date;
 }
 
-const scrapedContentSchema = new Schema<IScrapedContent>({
-  id: { type: String, required: true, unique: true },
-  customer_id: { type: String, required: true },
-  url: { type: String, required: true },
-  content: { type: String, required: true },
-  scraped_at: { type: Date, default: Date.now }
-});
+interface ScrapedContentCreationAttributes extends Optional<ScrapedContentAttributes, 'id' | 'scraped_at' | 'updated_at'> {}
 
-export const ScrapedContent = mongoose.model<IScrapedContent>('ScrapedContent', scrapedContentSchema);
+class ScrapedContent extends Model<ScrapedContentAttributes, ScrapedContentCreationAttributes> implements ScrapedContentAttributes {
+  public id!: string;
+  public customer_id!: string;
+  public url!: string;
+  public content!: string;
+  public readonly scraped_at!: Date;
+  public readonly updated_at!: Date;
+}
+
+ScrapedContent.init(
+  {
+    id: {
+      type: DataTypes.STRING(36),
+      primaryKey: true
+    },
+    customer_id: {
+      type: DataTypes.STRING(36),
+      allowNull: false,
+      references: {
+        model: 'customers',
+        key: 'id'
+      },
+      onDelete: 'CASCADE'
+    },
+    url: {
+      type: DataTypes.STRING(1024),
+      allowNull: false
+    },
+    content: {
+      type: DataTypes.TEXT('medium'),
+      allowNull: false
+    },
+    scraped_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
+  },
+  {
+    sequelize,
+    tableName: 'scraped_contents',
+    timestamps: true,
+    createdAt: 'scraped_at',
+    updatedAt: 'updated_at'
+  }
+);
+
+// Associations
+ScrapedContent.belongsTo(Customer, { foreignKey: 'customer_id' });
+Customer.hasMany(ScrapedContent, { foreignKey: 'customer_id' });
+
+export default ScrapedContent;

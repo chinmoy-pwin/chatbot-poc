@@ -1,17 +1,56 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import { DataTypes, Model, Optional } from 'sequelize';
+import sequelize from '../config/database';
 
-export interface ICustomer extends Document {
+interface CustomerAttributes {
   id: string;
   name: string;
   webhook_url?: string;
-  created_at: Date;
+  created_at?: Date;
+  updated_at?: Date;
 }
 
-const customerSchema = new Schema<ICustomer>({
-  id: { type: String, required: true, unique: true },
-  name: { type: String, required: true },
-  webhook_url: { type: String },
-  created_at: { type: Date, default: Date.now }
-});
+interface CustomerCreationAttributes extends Optional<CustomerAttributes, 'id' | 'created_at' | 'updated_at'> {}
 
-export const Customer = mongoose.model<ICustomer>('Customer', customerSchema);
+class Customer extends Model<CustomerAttributes, CustomerCreationAttributes> implements CustomerAttributes {
+  public id!: string;
+  public name!: string;
+  public webhook_url?: string;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
+}
+
+Customer.init(
+  {
+    id: {
+      type: DataTypes.STRING(36),
+      primaryKey: true
+    },
+    name: {
+      type: DataTypes.STRING(255),
+      allowNull: false
+    },
+    webhook_url: {
+      type: DataTypes.STRING(512),
+      allowNull: true
+    },
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
+  },
+  {
+    sequelize,
+    tableName: 'customers',
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
+  }
+);
+
+export default Customer;
