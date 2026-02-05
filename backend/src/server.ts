@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import sequelize from './config/database';
+import authRouter from './routes/auth';
 import customersRouter from './routes/customers';
 import knowledgeRouter from './routes/knowledge';
 import scrapingRouter from './routes/scraping';
