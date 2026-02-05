@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { Customer } from '../models/Customer';
+import Customer from '../models/Customer';
 
 const router = Router();
 
@@ -9,14 +9,11 @@ router.post('/', async (req, res) => {
   try {
     const { name, webhook_url } = req.body;
 
-    const customer = new Customer({
+    const customer = await Customer.create({
       id: uuidv4(),
       name,
-      webhook_url,
-      created_at: new Date()
+      webhook_url
     });
-
-    await customer.save();
 
     res.json({
       id: customer.id,
@@ -32,7 +29,10 @@ router.post('/', async (req, res) => {
 // Get all customers
 router.get('/', async (req, res) => {
   try {
-    const customers = await Customer.find().lean();
+    const customers = await Customer.findAll({
+      order: [['created_at', 'DESC']]
+    });
+    
     res.json(customers.map(c => ({
       id: c.id,
       name: c.name,
@@ -47,10 +47,14 @@ router.get('/', async (req, res) => {
 // Get customer by ID
 router.get('/:customer_id', async (req, res) => {
   try {
-    const customer = await Customer.findOne({ id: req.params.customer_id }).lean();
+    const customer = await Customer.findOne({
+      where: { id: req.params.customer_id }
+    });
+    
     if (!customer) {
       return res.status(404).json({ detail: 'Customer not found' });
     }
+    
     res.json({
       id: customer.id,
       name: customer.name,
