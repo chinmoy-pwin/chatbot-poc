@@ -149,15 +149,18 @@ backend:
 
   - task: "Customer Management API"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/src/routes/customers.ts"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Endpoints exist from previous implementation. Need to verify all CRUD operations work with new auth system."
+      - working: true
+        agent: "testing"
+        comment: "Customer Management API fully tested with authentication: ✅ GET /api/customers (admin sees all, customer sees own), ✅ GET /api/customers/:id (proper access control), ✅ POST /api/customers (admin only), ✅ Proper 403 errors for unauthorized access. All endpoints working correctly with JWT authentication."
 
   - task: "Knowledge Base File Upload API"
     implemented: true
