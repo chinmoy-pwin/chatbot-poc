@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import Customer from '../models/Customer';
+import { authenticate, AuthRequest, isAdmin } from '../middleware/auth';
 
 const router = Router();
 
-// Create customer
-router.post('/', async (req, res) => {
+// Create customer (Admin only)
+router.post('/', authenticate, isAdmin, async (req: AuthRequest, res) => {
   try {
     const { name, webhook_url } = req.body;
 
@@ -26,12 +27,22 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get all customers
-router.get('/', async (req, res) => {
+// Get all customers (Admin sees all, Customer sees only their own)
+router.get('/', authenticate, async (req: AuthRequest, res) => {
   try {
-    const customers = await Customer.findAll({
-      order: [['created_at', 'DESC']]
-    });
+    let customers;
+    
+    if (req.user?.role === 'admin') {
+      customers = await Customer.findAll({
+        order: [['created_at', 'DESC']]
+      });
+    } else {
+      // Customer users can only see their own customer record
+      customers = await Customer.findAll({
+        where: { id: req.user?.customer_id },
+        order: [['created_at', 'DESC']]
+      });
+    }
     
     res.json(customers.map(c => ({
       id: c.id,
@@ -44,9 +55,14 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get customer by ID
-router.get('/:customer_id', async (req, res) => {
+// Get customer by ID (Admin or owner only)
+router.get('/:customer_id', authenticate, async (req: AuthRequest, res) => {
   try {
+    // Check authorization
+    if (req.user?.role !== 'admin' && req.user?.customer_id !== req.params.customer_id) {
+      return res.status(403).json({ detail: 'Access denied' });
+    }
+
     const customer = await Customer.findOne({
       where: { id: req.params.customer_id }
     });
