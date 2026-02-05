@@ -41,12 +41,23 @@ export class ChatService {
       }
     }
 
-    // Fallback: Use simple MongoDB retrieval
-    const { KnowledgeFile } = await import('../models/KnowledgeFile');
-    const { ScrapedContent } = await import('../models/ScrapedContent');
+    // Fallback: Use simple MySQL retrieval
+    const KnowledgeFile = (await import('../models/KnowledgeFile')).default;
+    const ScrapedContent = (await import('../models/ScrapedContent')).default;
 
-    const kbFiles = await KnowledgeFile.find({ customer_id: customerId }).limit(5).lean();
-    const scrapedContent = await ScrapedContent.find({ customer_id: customerId }).limit(5).lean();
+    const kbFiles = await KnowledgeFile.findAll({
+      where: { customer_id: customerId },
+      attributes: ['filename', 'content'],
+      limit: 5,
+      order: [['uploaded_at', 'DESC']]
+    });
+
+    const scrapedContent = await ScrapedContent.findAll({
+      where: { customer_id: customerId },
+      attributes: ['url', 'content'],
+      limit: 5,
+      order: [['scraped_at', 'DESC']]
+    });
 
     const allContent: string[] = [];
     const sources: string[] = [];
