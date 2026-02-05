@@ -2,11 +2,12 @@ import { Router } from 'express';
 import KnowledgeFile from '../models/KnowledgeFile';
 import ScrapedContent from '../models/ScrapedContent';
 import Conversation from '../models/Conversation';
+import { authenticate, AuthRequest, canAccessCustomer } from '../middleware/auth';
 
 const router = Router();
 
-// Get stats for customer
-router.get('/:customer_id', async (req, res) => {
+// Get stats for customer (Admin or customer owner)
+router.get('/:customer_id', authenticate, canAccessCustomer, async (req: AuthRequest, res) => {
   try {
     const { customer_id } = req.params;
 
