@@ -164,15 +164,18 @@ backend:
 
   - task: "Knowledge Base File Upload API"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/src/routes/knowledge.ts"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Endpoints exist from previous implementation. Need to verify file upload works with auth and Pinecone integration."
+      - working: true
+        agent: "testing"
+        comment: "Knowledge Base API fully tested: ✅ File upload with authentication (POST /api/knowledge/upload), ✅ Authentication required (401 without token), ✅ File retrieval with proper access control (GET /api/knowledge/:customer_id), ✅ Admin can access all customer files, ✅ Customer blocked from accessing other customer files, ✅ File deletion with proper authorization. Pinecone integration has dummy keys but file processing and database storage working correctly."
 
   - task: "Web Scraping API"
     implemented: true
