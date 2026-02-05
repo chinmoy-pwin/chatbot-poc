@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import KnowledgeFile from '../models/KnowledgeFile';
 import { FileProcessor } from '../utils/fileProcessor';
 import { PineconeService } from '../services/pineconeService';
+import { authenticate, AuthRequest, canAccessCustomer } from '../middleware/auth';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -22,8 +23,8 @@ if (pineconeService) {
   pineconeService.initializeIndex().catch(console.error);
 }
 
-// Upload knowledge file
-router.post('/upload', upload.single('file'), async (req, res) => {
+// Upload knowledge file (Admin or customer owner)
+router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequest, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ detail: 'No file provided' });
@@ -32,6 +33,11 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     const { customer_id } = req.body;
     if (!customer_id) {
       return res.status(400).json({ detail: 'customer_id is required' });
+    }
+
+    // Check authorization
+    if (req.user?.role !== 'admin' && req.user?.customer_id !== customer_id) {
+      return res.status(403).json({ detail: 'You can only upload files for your own account' });
     }
 
     const content = await FileProcessor.extractText(req.file.buffer, req.file.originalname);
@@ -64,8 +70,8 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-// Get knowledge files for customer
-router.get('/:customer_id', async (req, res) => {
+// Get knowledge files for customer (Admin or customer owner)
+router.get('/:customer_id', authenticate, canAccessCustomer, async (req: AuthRequest, res) => {
   try {
     const files = await KnowledgeFile.findAll({
       where: { customer_id: req.params.customer_id },
@@ -85,16 +91,22 @@ router.get('/:customer_id', async (req, res) => {
   }
 });
 
-// Delete knowledge file
-router.delete('/:file_id', async (req, res) => {
+// Delete knowledge file (Admin or customer owner)
+router.delete('/:file_id', authenticate, async (req: AuthRequest, res) => {
   try {
-    const result = await KnowledgeFile.destroy({
-      where: { id: req.params.file_id }
-    });
+    // First, get the file to check ownership
+    const file = await KnowledgeFile.findOne({ where: { id: req.params.file_id } });
     
-    if (result === 0) {
+    if (!file) {
       return res.status(404).json({ detail: 'File not found' });
     }
+
+    // Check authorization
+    if (req.user?.role !== 'admin' && req.user?.customer_id !== file.customer_id) {
+      return res.status(403).json({ detail: 'You can only delete your own files' });
+    }
+
+    await file.destroy();
 
     // Delete from Pinecone in background
     if (pineconeService) {
