@@ -55,17 +55,17 @@ router.post('/', async (req, res) => {
     
     const userMessage = await Message.create({
       id: userMessageId,
-      conversation_id: conversation.id,
+      conversation_id: conversationId,
       role: 'user',
       content: message
     });
 
     const assistantMessageId = uuidv4();
-    console.log('Creating assistant message with ID:', assistantMessageId, 'conversation_id:', conversation.id);
+    console.log('Creating assistant message with ID:', assistantMessageId, 'conversation_id:', conversationId);
     
     const assistantMessage = await Message.create({
       id: assistantMessageId,
-      conversation_id: conversation.id,
+      conversation_id: conversationId,
       role: 'assistant',
       content: response
     });
