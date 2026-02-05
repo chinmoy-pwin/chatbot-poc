@@ -11,6 +11,28 @@ export default function ApiDocs() {
         <p className="text-muted-foreground">Integrate the chatbot into your website</p>
       </div>
 
+      {/* Live Demo Banner */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-blue-900 mb-2">🚀 Live Demo</h2>
+              <p className="text-blue-700">
+                See the chatbot webhook in action! Visit our demo logistics company website to test the chat integration.
+              </p>
+            </div>
+            <a
+              href="/chatbot-demo.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-lg hover:shadow-xl"
+            >
+              Open Demo →
+            </a>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card data-testid="api-docs-card">
         <CardHeader>
           <CardTitle>Webhook API</CardTitle>
