@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import cron from 'node-cron';
-import { ScrapeConfig } from '../models/ScrapeConfig';
-import { ScrapedContent } from '../models/ScrapedContent';
+import ScrapeConfig from '../models/ScrapeConfig';
+import ScrapedContent from '../models/ScrapedContent';
 import { WebScraper } from '../utils/webScraper';
 import { PineconeService } from '../services/pineconeService';
 
@@ -23,16 +23,13 @@ router.post('/config', async (req, res) => {
   try {
     const { customer_id, urls, schedule, auto_scrape } = req.body;
 
-    const config = new ScrapeConfig({
+    const config = await ScrapeConfig.create({
       id: uuidv4(),
       customer_id,
       urls,
       schedule: schedule || '0 0 * * *',
-      auto_scrape: auto_scrape || false,
-      created_at: new Date()
+      auto_scrape: auto_scrape || false
     });
-
-    await config.save();
 
     // Schedule auto-scraping if enabled
     if (config.auto_scrape && cron.validate(config.schedule)) {
@@ -58,7 +55,11 @@ router.post('/config', async (req, res) => {
 // Get scrape configs
 router.get('/config/:customer_id', async (req, res) => {
   try {
-    const configs = await ScrapeConfig.find({ customer_id: req.params.customer_id }).lean();
+    const configs = await ScrapeConfig.findAll({
+      where: { customer_id: req.params.customer_id },
+      order: [['created_at', 'DESC']]
+    });
+    
     res.json(configs.map(c => ({
       id: c.id,
       customer_id: c.customer_id,
@@ -87,15 +88,12 @@ router.post('/manual', async (req, res) => {
       try {
         const content = await WebScraper.scrapeUrl(url);
 
-        const scraped = new ScrapedContent({
+        const scraped = await ScrapedContent.create({
           id: uuidv4(),
           customer_id,
           url,
-          content,
-          scraped_at: new Date()
+          content
         });
-
-        await scraped.save();
 
         // Upsert to Pinecone in background
         if (pineconeService) {
@@ -122,10 +120,11 @@ router.post('/manual', async (req, res) => {
 // Get scraped content
 router.get('/content/:customer_id', async (req, res) => {
   try {
-    const content = await ScrapedContent.find(
-      { customer_id: req.params.customer_id },
-      { content: 0, _id: 0 }
-    ).lean();
+    const content = await ScrapedContent.findAll({
+      where: { customer_id: req.params.customer_id },
+      attributes: { exclude: ['content'] },
+      order: [['scraped_at', 'DESC']]
+    });
 
     res.json(content.map(c => ({
       id: c.id,
@@ -140,20 +139,20 @@ router.get('/content/:customer_id', async (req, res) => {
 
 // Helper function
 async function scrapeUrlsForCustomer(customerId: string) {
-  const configs = await ScrapeConfig.find({ customer_id: customerId, auto_scrape: true });
+  const configs = await ScrapeConfig.findAll({
+    where: { customer_id: customerId, auto_scrape: true }
+  });
 
   for (const config of configs) {
     for (const url of config.urls) {
       try {
         const content = await WebScraper.scrapeUrl(url);
-        const scraped = new ScrapedContent({
+        const scraped = await ScrapedContent.create({
           id: uuidv4(),
           customer_id: customerId,
           url,
-          content,
-          scraped_at: new Date()
+          content
         });
-        await scraped.save();
 
         // Upsert to Pinecone in background
         if (pineconeService) {
