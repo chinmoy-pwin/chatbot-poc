@@ -88,7 +88,7 @@ Context:
 ${context}`;
 
     const completion = await this.openai.chat.completions.create({
-      model: 'gpt-5.2',
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemMessage },
         { role: 'user', content: message }
