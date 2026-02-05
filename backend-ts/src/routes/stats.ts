@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { KnowledgeFile } from '../models/KnowledgeFile';
-import { ScrapedContent } from '../models/ScrapedContent';
-import { Conversation } from '../models/Conversation';
+import KnowledgeFile from '../models/KnowledgeFile';
+import ScrapedContent from '../models/ScrapedContent';
+import Conversation from '../models/Conversation';
 
 const router = Router();
 
@@ -11,9 +11,9 @@ router.get('/:customer_id', async (req, res) => {
     const { customer_id } = req.params;
 
     const [kbCount, scrapedCount, conversationCount] = await Promise.all([
-      KnowledgeFile.countDocuments({ customer_id }),
-      ScrapedContent.countDocuments({ customer_id }),
-      Conversation.countDocuments({ customer_id })
+      KnowledgeFile.count({ where: { customer_id } }),
+      ScrapedContent.count({ where: { customer_id } }),
+      Conversation.count({ where: { customer_id } })
     ]);
 
     res.json({
