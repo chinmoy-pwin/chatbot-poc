@@ -30,23 +30,40 @@ router.post('/', async (req, res) => {
     });
 
     if (!conversation) {
+      const conversationId = uuidv4();
+      console.log('Creating conversation with ID:', conversationId);
+      
       conversation = await Conversation.create({
-        id: uuidv4(),
+        id: conversationId,
         customer_id,
         session_id: sessionId
       });
+      
+      console.log('Created conversation:', conversation.toJSON());
     }
 
+    if (!conversation || !conversation.id) {
+      throw new Error('Failed to create or find conversation');
+    }
+
+    console.log('Using conversation ID:', conversation.id);
+
     // Save messages individually to avoid bulkCreate issues
-    await Message.create({
-      id: uuidv4(),
+    const userMessageId = uuidv4();
+    console.log('Creating user message with ID:', userMessageId, 'conversation_id:', conversation.id);
+    
+    const userMessage = await Message.create({
+      id: userMessageId,
       conversation_id: conversation.id,
       role: 'user',
       content: message
     });
 
-    await Message.create({
-      id: uuidv4(),
+    const assistantMessageId = uuidv4();
+    console.log('Creating assistant message with ID:', assistantMessageId, 'conversation_id:', conversation.id);
+    
+    const assistantMessage = await Message.create({
+      id: assistantMessageId,
       conversation_id: conversation.id,
       role: 'assistant',
       content: response
@@ -58,6 +75,7 @@ router.post('/', async (req, res) => {
       sources
     });
   } catch (error) {
+    console.error('Chat error:', error);
     res.status(500).json({ detail: `Error processing chat: ${error}` });
   }
 });
@@ -81,11 +99,16 @@ router.post('/webhook', async (req, res) => {
     });
 
     if (!conversation) {
+      const conversationId = uuidv4();
       conversation = await Conversation.create({
-        id: uuidv4(),
+        id: conversationId,
         customer_id,
         session_id: sessionId
       });
+    }
+
+    if (!conversation || !conversation.id) {
+      throw new Error('Failed to create or find conversation');
     }
 
     // Save messages individually to avoid bulkCreate issues
@@ -109,6 +132,7 @@ router.post('/webhook', async (req, res) => {
       sources
     });
   } catch (error) {
+    console.error('Webhook chat error:', error);
     res.status(500).json({ detail: `Error processing webhook chat: ${error}` });
   }
 });
