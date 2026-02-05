@@ -12,11 +12,11 @@ interface CustomerAttributes {
 interface CustomerCreationAttributes extends Optional<CustomerAttributes, 'id' | 'created_at' | 'updated_at'> {}
 
 class Customer extends Model<CustomerAttributes, CustomerCreationAttributes> implements CustomerAttributes {
-  public id!: string;
-  public name!: string;
-  public webhook_url?: string;
-  public readonly created_at!: Date;
-  public readonly updated_at!: Date;
+  declare id: string;
+  declare name: string;
+  declare webhook_url?: string;
+  declare readonly created_at: Date;
+  declare readonly updated_at: Date;
 }
 
 Customer.init(
