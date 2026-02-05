@@ -1,249 +1,310 @@
-# MongoDB Database Scripts
+# Database Scripts
 
-This directory contains MongoDB initialization and data management scripts for KbaseAI.
+This directory contains MySQL database initialization and management scripts for KbaseAI.
 
 ## Scripts Overview
 
-### 1. init_mongodb.js
-Initializes the MongoDB database with proper indexes and collection structure.
+### mysql_schema.sql
+Creates the complete MySQL database schema with all tables, indexes, and foreign keys.
 
 **What it does:**
-- Creates indexes for all collections
-- Sets up unique constraints
-- Optimizes query performance
-- Displays database statistics
+- Creates `kbaseai` database
+- Creates 6 tables (customers, knowledge_files, scraped_contents, scrape_configs, conversations, messages)
+- Sets up indexes for optimal query performance
+- Configures foreign keys with CASCADE delete
+- Uses utf8mb4 character set for full Unicode support
 
 **Usage:**
 ```bash
-# Using mongosh
-mongosh < /app/scripts/init_mongodb.js
+# Initialize database
+mysql -u root < /app/scripts/mysql_schema.sql
 
-# Or connect first, then run
-mongosh
-use test_database
-load('/app/scripts/init_mongodb.js')
+# Or with password
+mysql -u root -p < /app/scripts/mysql_schema.sql
+
+# Verify tables created
+mysql -u root kbaseai -e "SHOW TABLES;"
 ```
 
 **When to use:**
 - First time setup
 - After database reset
-- When adding new indexes
-- Performance optimization
-
-### 2. sample_data.js
-Inserts sample data for testing and demonstration purposes.
-
-**What it inserts:**
-- 2 sample customers (Tech Startup, E-commerce Store)
-- 4 knowledge base files (various formats)
-- 2 scraped content entries
-- 2 scrape configurations
-- 3 sample conversations
-
-**Usage:**
-```bash
-# Using mongosh
-mongosh < /app/scripts/sample_data.js
-
-# Or within mongosh
-use test_database
-load('/app/scripts/sample_data.js')
-```
-
-**When to use:**
-- Testing the application
-- Demonstrating features
-- Development environment setup
-- Training purposes
+- Creating new environment
+- Disaster recovery
 
 ## Complete Setup Workflow
 
 ### Fresh Database Setup
 ```bash
-# 1. Start MongoDB (if not running)
-sudo supervisorctl start mongodb
+# 1. Start MySQL (if not running)
+sudo service mariadb start
 
 # 2. Initialize database structure
-mongosh < /app/scripts/init_mongodb.js
+mysql -u root < /app/scripts/mysql_schema.sql
 
-# 3. Insert sample data (optional)
-mongosh < /app/scripts/sample_data.js
+# 3. Verify database
+mysql -u root kbaseai -e "SHOW TABLES;"
 
-# 4. Verify data
-mongosh
-use test_database
-db.customers.find().pretty()
+# 4. Check table structure
+mysql -u root kbaseai -e "DESCRIBE customers;"
 ```
 
 ### Production Setup
 ```bash
-# 1. Initialize database (indexes only)
-mongosh < /app/scripts/init_mongodb.js
+# 1. Initialize database
+mysql -u root < /app/scripts/mysql_schema.sql
 
-# 2. Skip sample data for production
-# 3. Let application create real data
+# 2. Create production user (recommended)
+mysql -u root <<EOF
+CREATE USER 'kbaseai'@'localhost' IDENTIFIED BY 'secure_password';
+GRANT ALL PRIVILEGES ON kbaseai.* TO 'kbaseai'@'localhost';
+FLUSH PRIVILEGES;
+EOF
+
+# 3. Update backend .env with production credentials
 ```
 
 ## Database Connection
 
-**Default Connection String:**
+**Default Connection:**
 ```
-mongodb://localhost:27017/test_database
-```
-
-**From Application:**
-```bash
-# Backend uses this from .env
-MONGO_URL=mongodb://localhost:27017
-DB_NAME=test_database
+Host: localhost
+Port: 3306
+Database: kbaseai
+User: root
+Password: (empty)
 ```
 
-## Maintenance Scripts
+**From Backend:**
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=kbaseai
+DB_USER=root
+DB_PASSWORD=
+```
+
+## Maintenance Commands
 
 ### Backup Database
 ```bash
 # Full backup
-mongodump --db test_database --out /tmp/backup/$(date +%Y%m%d)
+mysqldump -u root kbaseai > backup_$(date +%Y%m%d).sql
 
-# Backup specific collection
-mongodump --db test_database --collection customers --out /tmp/backup/customers
+# Backup with gzip compression
+mysqldump -u root kbaseai | gzip > backup_$(date +%Y%m%d).sql.gz
 
+# Backup specific table
+mysqldump -u root kbaseai customers > customers_backup.sql
+
+# Backup structure only (no data)
+mysqldump -u root kbaseai --no-data > schema_only.sql
+```
+
+### Restore Database
+```bash
 # Restore from backup
-mongorestore --db test_database /tmp/backup/20240204
+mysql -u root kbaseai < backup_20240205.sql
+
+# Restore from compressed backup
+gunzip < backup_20240205.sql.gz | mysql -u root kbaseai
+
+# Drop and recreate before restore
+mysql -u root -e "DROP DATABASE IF EXISTS kbaseai;"
+mysql -u root < /app/scripts/mysql_schema.sql
+mysql -u root kbaseai < backup_20240205.sql
 ```
 
 ### Reset Database
 ```bash
 # WARNING: This deletes all data!
-mongosh <<EOF
-use test_database
-db.customers.drop()
-db.knowledgefiles.drop()
-db.scrapedcontents.drop()
-db.scrapeconfigs.drop()
-db.conversations.drop()
-EOF
-
-# Then re-initialize
-mongosh < /app/scripts/init_mongodb.js
+mysql -u root -e "DROP DATABASE IF EXISTS kbaseai;"
+mysql -u root < /app/scripts/mysql_schema.sql
+echo "Database reset complete"
 ```
 
 ### Check Database Status
 ```bash
-mongosh <<EOF
-use test_database
-print("Database Stats:")
-printjson(db.stats())
-print("\nCollections:")
-db.getCollectionNames().forEach(function(col) {
-    print("- " + col + ": " + db[col].countDocuments() + " documents")
-})
+# Database size and table counts
+mysql -u root kbaseai <<EOF
+SELECT 
+  TABLE_NAME,
+  TABLE_ROWS,
+  ROUND(DATA_LENGTH / 1024 / 1024, 2) AS 'Size (MB)'
+FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = 'kbaseai'
+ORDER BY DATA_LENGTH DESC;
+EOF
+
+# Quick stats
+mysql -u root kbaseai <<EOF
+SELECT 'Customers' as table_name, COUNT(*) as count FROM customers
+UNION ALL
+SELECT 'Knowledge Files', COUNT(*) FROM knowledge_files
+UNION ALL
+SELECT 'Scraped Contents', COUNT(*) FROM scraped_contents
+UNION ALL
+SELECT 'Conversations', COUNT(*) FROM conversations
+UNION ALL
+SELECT 'Messages', COUNT(*) FROM messages;
 EOF
 ```
 
-### Rebuild Indexes
+### Optimize Tables
 ```bash
-mongosh <<EOF
-use test_database
-db.customers.reIndex()
-db.knowledgefiles.reIndex()
-db.scrapedcontents.reIndex()
-db.scrapeconfigs.reIndex()
-db.conversations.reIndex()
-print("All indexes rebuilt successfully")
-EOF
+# Optimize all tables
+mysql -u root kbaseai -e "
+  OPTIMIZE TABLE customers, knowledge_files, scraped_contents, 
+  scrape_configs, conversations, messages;
+"
+
+# Analyze tables (update statistics)
+mysql -u root kbaseai -e "
+  ANALYZE TABLE customers, knowledge_files, scraped_contents, 
+  scrape_configs, conversations, messages;
+"
 ```
 
 ## Common Tasks
 
 ### Check Index Usage
 ```bash
-mongosh <<EOF
-use test_database
-db.knowledgefiles.aggregate([
-  { \$indexStats: {} }
-]).pretty()
+mysql -u root kbaseai <<EOF
+SELECT 
+  TABLE_NAME,
+  INDEX_NAME,
+  SEQ_IN_INDEX,
+  COLUMN_NAME
+FROM information_schema.STATISTICS
+WHERE TABLE_SCHEMA = 'kbaseai'
+ORDER BY TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX;
 EOF
 ```
 
-### Find Large Documents
+### Find Large Tables
 ```bash
-mongosh <<EOF
-use test_database
-db.knowledgefiles.find({}, {
-  filename: 1,
-  size: { \$bsonSize: "$$ROOT" }
-}).sort({ size: -1 }).limit(10).pretty()
+mysql -u root kbaseai <<EOF
+SELECT 
+  TABLE_NAME,
+  ROUND(DATA_LENGTH / 1024 / 1024, 2) AS 'Data Size (MB)',
+  ROUND(INDEX_LENGTH / 1024 / 1024, 2) AS 'Index Size (MB)',
+  ROUND((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024, 2) AS 'Total Size (MB)'
+FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = 'kbaseai'
+ORDER BY (DATA_LENGTH + INDEX_LENGTH) DESC;
 EOF
 ```
 
-### Clean Old Conversations
+### Clean Old Data
 ```bash
-mongosh <<EOF
-use test_database
-const ninetyDaysAgo = new Date()
-ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
-const result = db.conversations.deleteMany({
-  "messages.timestamp": { \$lt: ninetyDaysAgo }
-})
-print("Deleted " + result.deletedCount + " old conversations")
+# Delete conversations older than 90 days
+mysql -u root kbaseai <<EOF
+DELETE FROM conversations 
+WHERE created_at < DATE_SUB(NOW(), INTERVAL 90 DAY);
+EOF
+
+# Delete orphaned messages (conversations deleted)
+mysql -u root kbaseai <<EOF
+DELETE m FROM messages m
+LEFT JOIN conversations c ON m.conversation_id = c.id
+WHERE c.id IS NULL;
 EOF
 ```
 
-### Export Data to JSON
+### Export Data
 ```bash
-# Export customers
-mongoexport --db test_database --collection customers --out customers.json --pretty
+# Export customers to CSV
+mysql -u root kbaseai -e "
+  SELECT * FROM customers
+" --batch --silent > customers.csv
 
-# Export with query
-mongoexport --db test_database --collection knowledgefiles \
-  --query '{"customer_id":"some-id"}' --out kb_files.json
+# Export with headers
+mysql -u root kbaseai <<EOF
+SELECT 'id', 'name', 'webhook_url', 'created_at'
+UNION ALL
+SELECT id, name, IFNULL(webhook_url, ''), created_at
+FROM customers
+INTO OUTFILE '/tmp/customers_export.csv'
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n';
+EOF
 ```
 
-### Import Data from JSON
+### Import Data
 ```bash
-# Import customers
-mongoimport --db test_database --collection customers --file customers.json
-
-# Drop collection before import
-mongoimport --db test_database --collection customers \
-  --file customers.json --drop
+# Import CSV (if exporting to file directly)
+mysql -u root kbaseai <<EOF
+LOAD DATA LOCAL INFILE '/tmp/customers.csv'
+INTO TABLE customers
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS;
+EOF
 ```
+
+## Database Schema Details
+
+### Tables Summary
+| Table | Purpose | Key Columns |
+|-------|---------|-------------|
+| customers | Multi-tenant customer data | id (PK), name |
+| knowledge_files | Uploaded files with content | id (PK), customer_id (FK), content |
+| scraped_contents | Website scraped data | id (PK), customer_id (FK), url |
+| scrape_configs | Scraping schedules | id (PK), customer_id (FK), urls (JSON) |
+| conversations | Chat sessions | id (PK), customer_id (FK), session_id |
+| messages | Chat messages | id (PK), conversation_id (FK), role |
+
+### Foreign Key Relationships
+- All tables with `customer_id` → `customers(id)` with CASCADE delete
+- `messages.conversation_id` → `conversations(id)` with CASCADE delete
+
+### Indexes Created
+- Primary keys on all `id` columns
+- Foreign key indexes on all `*_id` columns
+- Composite indexes for common queries (e.g., customer_id + created_at)
+- URL index on scraped_contents (partial, 255 chars)
 
 ## Troubleshooting
 
-### MongoDB Not Running
+### MySQL Not Running
 ```bash
 # Check status
-sudo supervisorctl status mongodb
+sudo service mariadb status
 
-# Start MongoDB
-sudo supervisorctl start mongodb
-
-# Check logs
-tail -f /var/log/mongodb.out.log
-```
-
-### Connection Issues
-```bash
-# Test connection
-mongosh --eval "db.adminCommand('ping')"
+# Start MySQL
+sudo service mariadb start
 
 # Check if port is open
-netstat -an | grep 27017
+netstat -an | grep 3306
 
-# Verify MongoDB process
-ps aux | grep mongod
+# Verify MySQL process
+ps aux | grep mysqld
 ```
 
-### Index Creation Fails
+### Access Denied Errors
 ```bash
-# Drop and recreate
-mongosh <<EOF
-use test_database
-db.customers.dropIndexes()
-db.customers.createIndex({ "id": 1 }, { unique: true })
-EOF
+# Grant all privileges to root
+sudo mysql -e "
+  GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost';
+  FLUSH PRIVILEGES;
+"
+
+# Reset root password (if needed)
+sudo mysql -e "
+  ALTER USER 'root'@'localhost' IDENTIFIED BY '';
+  FLUSH PRIVILEGES;
+"
+```
+
+### Table Already Exists
+```bash
+# Drop and recreate single table
+mysql -u root kbaseai -e "DROP TABLE IF EXISTS customers;"
+# Then re-run schema creation
+
+# Or use IF NOT EXISTS (already in schema.sql)
 ```
 
 ### Disk Space Issues
@@ -251,44 +312,88 @@ EOF
 # Check disk usage
 df -h
 
-# Check MongoDB data size
-du -sh /var/lib/mongodb/
+# Check MySQL data directory size
+du -sh /var/lib/mysql/
 
-# Compact database (requires downtime)
-mongosh <<EOF
-use test_database
-db.runCommand({ compact: 'knowledgefiles' })
-EOF
+# Clean binary logs if needed
+mysql -u root -e "PURGE BINARY LOGS BEFORE NOW();"
+```
+
+### Slow Queries
+```bash
+# Enable slow query log
+mysql -u root -e "
+  SET GLOBAL slow_query_log = 'ON';
+  SET GLOBAL long_query_time = 2;
+"
+
+# Check slow query log
+tail -f /var/log/mysql/mysql-slow.log
+
+# Analyze slow queries
+mysql -u root kbaseai -e "EXPLAIN SELECT * FROM knowledge_files WHERE customer_id = 'xxx';"
 ```
 
 ## Performance Tips
 
-1. **Always use indexes** - Run init_mongodb.js to ensure indexes exist
-2. **Project fields** - Don't fetch content field when not needed
-3. **Limit results** - Use `.limit()` for large collections
-4. **Use lean()** - In Mongoose, use `.lean()` for read-only queries
-5. **Monitor slow queries** - Enable profiling in production
+1. **Use Indexes** - Schema already includes optimal indexes
+2. **Limit Results** - Always use LIMIT for large tables
+3. **Avoid SELECT *** - Exclude `content` field when not needed
+4. **Use Connection Pooling** - Backend already configured (max: 10)
+5. **Regular Maintenance** - Run OPTIMIZE TABLE monthly
+6. **Monitor Slow Queries** - Enable and review slow query log
+7. **Use EXPLAIN** - Analyze query execution plans
 
-## Security Notes
+## Security Best Practices
 
-1. **Enable Authentication** - For production, enable MongoDB auth
-2. **Use Strong Passwords** - Generate secure passwords for DB users
-3. **Network Security** - Bind to localhost only for local deployments
-4. **Regular Backups** - Automate daily backups with retention policy
-5. **Audit Logs** - Enable audit logging for compliance
+### Production Security
+```bash
+# 1. Create dedicated user
+mysql -u root <<EOF
+CREATE USER 'kbaseai_prod'@'localhost' IDENTIFIED BY 'strong_password_here';
+GRANT SELECT, INSERT, UPDATE, DELETE ON kbaseai.* TO 'kbaseai_prod'@'localhost';
+FLUSH PRIVILEGES;
+EOF
+
+# 2. Remove test users
+mysql -u root -e "DELETE FROM mysql.user WHERE User='';"
+
+# 3. Bind to localhost only (in /etc/mysql/mariadb.conf.d/50-server.cnf)
+# bind-address = 127.0.0.1
+
+# 4. Enable SSL (if needed for remote connections)
+
+# 5. Regular password rotation
+```
+
+### Backup Best Practices
+- Automate daily backups via cron
+- Store backups off-server (S3, remote storage)
+- Test restore procedures regularly
+- Keep at least 30 days of backups
+- Encrypt backup files
+
+### Example Backup Cron Job
+```bash
+# Add to crontab: crontab -e
+0 2 * * * mysqldump -u root kbaseai | gzip > /backups/kbaseai_$(date +\%Y\%m\%d).sql.gz
+
+# With automatic cleanup (keep last 30 days)
+0 2 * * * mysqldump -u root kbaseai | gzip > /backups/kbaseai_$(date +\%Y\%m\%d).sql.gz && find /backups -name "kbaseai_*.sql.gz" -mtime +30 -delete
+```
 
 ## Additional Resources
 
-- Full Schema Documentation: `/app/mongodb_schema_documentation.md`
-- MongoDB Manual: https://docs.mongodb.com/manual/
-- Mongoose Docs: https://mongoosejs.com/docs/
-- mongosh Reference: https://docs.mongodb.com/mongodb-shell/
+- MySQL Documentation: https://dev.mysql.com/doc/
+- MariaDB Documentation: https://mariadb.com/kb/en/
+- Sequelize ORM: https://sequelize.org/docs/
+- MySQL Performance Tuning: https://dev.mysql.com/doc/refman/8.0/en/optimization.html
 
 ## Support
 
-For issues with these scripts:
-1. Check MongoDB logs: `/var/log/mongodb.out.log`
-2. Verify MongoDB is running: `sudo supervisorctl status mongodb`
-3. Test connection: `mongosh --eval "db.adminCommand('ping')"`
-4. Review error messages carefully
-5. Check disk space and permissions
+For database issues:
+1. Check MySQL service: `sudo service mariadb status`
+2. Review error logs: `tail -f /var/log/mysql/error.log`
+3. Test connection: `mysql -u root -e "SELECT 1;"`
+4. Verify database exists: `mysql -u root -e "SHOW DATABASES;" | grep kbaseai`
+5. Check table structure: `mysql -u root kbaseai -e "SHOW TABLES;"`
