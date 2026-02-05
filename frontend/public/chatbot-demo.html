@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SwiftChain Logistics - AI-Powered Supply Chain Solutions</title>
+    <title>SwiftChain Logistics - AI Assistant</title>
     <style>
         * {
             margin: 0;
@@ -13,166 +13,247 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+            background: #f7f7f8;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
+        /* Header */
         .header {
             background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            margin-bottom: 30px;
+            border-bottom: 1px solid #e5e5e5;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
         .logo {
-            font-size: 32px;
-            font-weight: bold;
+            font-size: 20px;
+            font-weight: 600;
             color: #667eea;
-            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .tagline {
-            color: #666;
-            font-size: 16px;
+        .info-toggle {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
         }
 
-        .content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
+        .info-toggle:hover {
+            background: #5568d3;
         }
 
-        .info-card {
+        /* Main Container */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 300px;
             background: white;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border-right: 1px solid #e5e5e5;
+            overflow-y: auto;
+            padding: 20px;
+            transition: transform 0.3s ease;
         }
 
-        .info-card h2 {
+        .sidebar.hidden {
+            transform: translateX(-100%);
+            position: absolute;
+            height: 100%;
+        }
+
+        .sidebar h3 {
             color: #667eea;
-            margin-bottom: 15px;
-            font-size: 24px;
+            font-size: 16px;
+            margin-bottom: 12px;
+            margin-top: 20px;
         }
 
-        .info-card p {
-            color: #555;
+        .sidebar h3:first-child {
+            margin-top: 0;
+        }
+
+        .sidebar p, .sidebar li {
+            color: #444;
+            font-size: 13px;
             line-height: 1.6;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
-        .info-card ul {
+        .sidebar ul {
             list-style: none;
             padding-left: 0;
         }
 
-        .info-card li {
-            padding: 8px 0;
-            color: #555;
-        }
-
-        .info-card li:before {
+        .sidebar li:before {
             content: "✓ ";
             color: #667eea;
             font-weight: bold;
-            margin-right: 8px;
+            margin-right: 6px;
         }
 
-        /* Chatbot Styles */
-        .chatbot-container {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 450px;
-            height: 600px;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        /* Chat Container */
+        .chat-container {
+            flex: 1;
             display: flex;
             flex-direction: column;
-            z-index: 1000;
-            overflow: hidden;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
         }
 
-        .chatbot-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            font-size: 18px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .chatbot-icon {
-            width: 30px;
-            height: 30px;
-            background: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #667eea;
-            font-size: 18px;
-        }
-
-        .chatbot-messages {
+        /* Messages Area */
+        .messages-area {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
-            background: #f8f9fa;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
         }
 
         .message {
-            margin-bottom: 15px;
+            margin-bottom: 24px;
             display: flex;
-            gap: 10px;
+            flex-direction: column;
+            animation: fadeIn 0.3s ease;
         }
 
-        .message.user {
-            flex-direction: row-reverse;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        .message-bubble {
-            max-width: 70%;
-            padding: 12px 16px;
-            border-radius: 15px;
-            word-wrap: break-word;
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
         }
 
-        .message.bot .message-bubble {
-            background: white;
-            color: #333;
-            border: 1px solid #e0e0e0;
+        .message.user .message-header {
+            color: #667eea;
         }
 
-        .message.user .message-bubble {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .message.bot .message-header {
+            color: #10a37f;
+        }
+
+        .message-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .message.user .message-icon {
+            background: #667eea;
             color: white;
         }
 
-        .message-time {
-            font-size: 11px;
-            color: #999;
-            margin-top: 5px;
+        .message.bot .message-icon {
+            background: #10a37f;
+            color: white;
         }
 
+        .message-content {
+            padding-left: 36px;
+            color: #374151;
+            line-height: 1.7;
+            font-size: 15px;
+        }
+
+        .message-time {
+            padding-left: 36px;
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+
+        .welcome-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .welcome-screen h1 {
+            font-size: 32px;
+            color: #1f2937;
+            margin-bottom: 12px;
+        }
+
+        .welcome-screen p {
+            font-size: 16px;
+            margin-bottom: 32px;
+            max-width: 600px;
+        }
+
+        .example-prompts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
+            width: 100%;
+            max-width: 700px;
+        }
+
+        .example-prompt {
+            background: white;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .example-prompt:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+        }
+
+        .example-prompt-title {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .example-prompt-text {
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        /* Typing Indicator */
         .typing-indicator {
             display: none;
-            padding: 10px 15px;
-            background: white;
-            border-radius: 15px;
-            width: fit-content;
-            border: 1px solid #e0e0e0;
+            padding-left: 36px;
+            margin-bottom: 24px;
         }
 
         .typing-indicator.active {
@@ -184,170 +265,184 @@
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: #667eea;
+            background: #9ca3af;
             margin: 0 2px;
             animation: typing 1.4s infinite;
         }
 
-        .typing-dot:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-
-        .typing-dot:nth-child(3) {
-            animation-delay: 0.4s;
-        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
         @keyframes typing {
-            0%, 60%, 100% {
-                transform: translateY(0);
-            }
-            30% {
-                transform: translateY(-10px);
-            }
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-6px); }
         }
 
-        .chatbot-input {
-            padding: 20px;
+        /* Input Area */
+        .input-area {
+            padding: 16px 20px 24px;
+            background: transparent;
+        }
+
+        .input-wrapper {
+            max-width: 900px;
+            margin: 0 auto;
             background: white;
-            border-top: 1px solid #e0e0e0;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
             display: flex;
-            gap: 10px;
+            align-items: center;
+            padding: 4px;
+            transition: box-shadow 0.2s;
         }
 
-        .chatbot-input input {
-            flex: 1;
-            padding: 12px 16px;
-            border: 2px solid #e0e0e0;
-            border-radius: 25px;
-            font-size: 14px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-
-        .chatbot-input input:focus {
+        .input-wrapper:focus-within {
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
             border-color: #667eea;
         }
 
-        .chatbot-input button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .input-wrapper input {
+            flex: 1;
+            border: none;
+            outline: none;
+            padding: 14px 16px;
+            font-size: 15px;
+            font-family: inherit;
+        }
+
+        .input-wrapper button {
+            background: #667eea;
             color: white;
             border: none;
-            padding: 12px 24px;
-            border-radius: 25px;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
             cursor: pointer;
-            font-weight: bold;
-            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            font-size: 18px;
         }
 
-        .chatbot-input button:hover {
-            transform: scale(1.05);
+        .input-wrapper button:hover:not(:disabled) {
+            background: #5568d3;
         }
 
-        .chatbot-input button:disabled {
+        .input-wrapper button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            transform: none;
-        }
-
-        .welcome-message {
-            text-align: center;
-            color: #999;
-            padding: 20px;
-            font-size: 14px;
         }
 
         @media (max-width: 768px) {
-            .content {
-                grid-template-columns: 1fr;
+            .sidebar {
+                position: absolute;
+                z-index: 100;
+                height: calc(100% - 49px);
+                box-shadow: 2px 0 8px rgba(0,0,0,0.1);
             }
 
-            .chatbot-container {
-                width: calc(100% - 40px);
-                height: 500px;
-                bottom: 20px;
-                right: 20px;
+            .example-prompts {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="logo">🚛 SwiftChain Logistics</div>
-            <div class="tagline">Revolutionizing Supply Chain Management with AI-Powered Intelligence</div>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">
+            <span>🚛</span>
+            <span>SwiftChain Logistics AI</span>
         </div>
-
-        <!-- Content -->
-        <div class="content">
-            <div class="info-card">
-                <h2>About SwiftChain</h2>
-                <p>SwiftChain Logistics is a leading supply chain management company specializing in end-to-end logistics solutions. We leverage cutting-edge AI technology to optimize delivery routes, manage inventory, and provide real-time tracking.</p>
-                <p>With over 15 years of experience, we serve clients across 50+ countries, handling millions of shipments annually.</p>
-            </div>
-
-            <div class="info-card">
-                <h2>Our Services</h2>
-                <ul>
-                    <li>Global Freight Forwarding</li>
-                    <li>Warehousing & Distribution</li>
-                    <li>Last-Mile Delivery Solutions</li>
-                    <li>Real-Time Shipment Tracking</li>
-                    <li>Supply Chain Analytics</li>
-                    <li>Customs Clearance</li>
-                    <li>Temperature-Controlled Logistics</li>
-                </ul>
-            </div>
-
-            <div class="info-card">
-                <h2>Why Choose Us?</h2>
-                <ul>
-                    <li>99.8% On-Time Delivery Rate</li>
-                    <li>24/7 Customer Support</li>
-                    <li>Real-Time GPS Tracking</li>
-                    <li>Eco-Friendly Fleet Options</li>
-                    <li>Competitive Pricing</li>
-                    <li>Insurance Coverage Included</li>
-                </ul>
-            </div>
-
-            <div class="info-card">
-                <h2>Contact Information</h2>
-                <p><strong>Headquarters:</strong> 123 Logistics Avenue, New York, NY 10001</p>
-                <p><strong>Phone:</strong> +1 (800) SWIFT-01</p>
-                <p><strong>Email:</strong> support@swiftchain.com</p>
-                <p><strong>Hours:</strong> Monday - Friday: 8:00 AM - 8:00 PM EST<br>Saturday - Sunday: 9:00 AM - 5:00 PM EST</p>
-            </div>
-        </div>
+        <button class="info-toggle" onclick="toggleSidebar()">
+            Company Info
+        </button>
     </div>
 
-    <!-- Chatbot -->
-    <div class="chatbot-container">
-        <div class="chatbot-header">
-            <div class="chatbot-icon">💬</div>
-            SwiftChain AI Assistant
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <h3>About SwiftChain</h3>
+            <p>SwiftChain Logistics is a leading supply chain management company specializing in end-to-end logistics solutions. We leverage cutting-edge AI technology to optimize delivery routes, manage inventory, and provide real-time tracking.</p>
+            <p>With over 15 years of experience, we serve clients across 50+ countries, handling millions of shipments annually.</p>
+
+            <h3>Our Services</h3>
+            <ul>
+                <li>Global Freight Forwarding</li>
+                <li>Warehousing & Distribution</li>
+                <li>Last-Mile Delivery Solutions</li>
+                <li>Real-Time Shipment Tracking</li>
+                <li>Supply Chain Analytics</li>
+                <li>Customs Clearance</li>
+                <li>Temperature-Controlled Logistics</li>
+            </ul>
+
+            <h3>Why Choose Us?</h3>
+            <ul>
+                <li>99.8% On-Time Delivery Rate</li>
+                <li>24/7 Customer Support</li>
+                <li>Real-Time GPS Tracking</li>
+                <li>Eco-Friendly Fleet Options</li>
+                <li>Competitive Pricing</li>
+                <li>Insurance Coverage Included</li>
+            </ul>
+
+            <h3>Contact</h3>
+            <p><strong>HQ:</strong> 123 Logistics Ave, NY 10001</p>
+            <p><strong>Phone:</strong> +1 (800) SWIFT-01</p>
+            <p><strong>Email:</strong> support@swiftchain.com</p>
         </div>
-        
-        <div class="chatbot-messages" id="chatMessages">
-            <div class="welcome-message">
-                👋 Welcome! I'm your SwiftChain AI assistant. Ask me about our services, shipping rates, tracking, or anything else!
+
+        <!-- Chat Container -->
+        <div class="chat-container">
+            <div class="messages-area" id="messagesArea">
+                <div class="welcome-screen" id="welcomeScreen">
+                    <h1>👋 Welcome to SwiftChain AI</h1>
+                    <p>Your intelligent logistics assistant. Ask me anything about our services, get shipping quotes, track packages, or learn about our supply chain solutions.</p>
+                    
+                    <div class="example-prompts">
+                        <div class="example-prompt" onclick="sendExampleMessage('What services do you offer?')">
+                            <div class="example-prompt-title">📦 Our Services</div>
+                            <div class="example-prompt-text">What services do you offer?</div>
+                        </div>
+                        <div class="example-prompt" onclick="sendExampleMessage('How can I track my shipment?')">
+                            <div class="example-prompt-title">📍 Track Shipment</div>
+                            <div class="example-prompt-text">How can I track my shipment?</div>
+                        </div>
+                        <div class="example-prompt" onclick="sendExampleMessage('Do you offer international shipping?')">
+                            <div class="example-prompt-title">🌍 International</div>
+                            <div class="example-prompt-text">Do you offer international shipping?</div>
+                        </div>
+                        <div class="example-prompt" onclick="sendExampleMessage('What are your shipping rates?')">
+                            <div class="example-prompt-title">💰 Pricing</div>
+                            <div class="example-prompt-text">What are your shipping rates?</div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <div class="typing-indicator" id="typingIndicator">
-            <span class="typing-dot"></span>
-            <span class="typing-dot"></span>
-            <span class="typing-dot"></span>
-        </div>
+            <div class="typing-indicator" id="typingIndicator">
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+            </div>
 
-        <div class="chatbot-input">
-            <input 
-                type="text" 
-                id="messageInput" 
-                placeholder="Type your message here..."
-                onkeypress="handleKeyPress(event)"
-            >
-            <button onclick="sendMessage()" id="sendButton">Send</button>
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <input 
+                        type="text" 
+                        id="messageInput" 
+                        placeholder="Ask me anything about SwiftChain logistics..."
+                        onkeypress="handleKeyPress(event)"
+                    >
+                    <button onclick="sendMessage()" id="sendButton">
+                        ↑
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
