@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import mongoose from 'mongoose';
+import sequelize from './config/database';
 import customersRouter from './routes/customers';
 import knowledgeRouter from './routes/knowledge';
 import scrapingRouter from './routes/scraping';
@@ -26,13 +26,10 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// MongoDB connection
-const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017';
-const DB_NAME = process.env.DB_NAME || 'test_database';
-
-mongoose.connect(`${MONGO_URL}/${DB_NAME}`)
-  .then(() => console.log('✓ Connected to MongoDB'))
-  .catch(err => console.error('✗ MongoDB connection error:', err));
+// MySQL connection
+sequelize.authenticate()
+  .then(() => console.log('✓ Connected to MySQL'))
+  .catch(err => console.error('✗ MySQL connection error:', err));
 
 // Routes
 app.get('/api', (req: Request, res: Response) => {
