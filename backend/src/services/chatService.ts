@@ -63,12 +63,14 @@ export class ChatService {
     const sources: string[] = [];
 
     kbFiles.forEach(kb => {
-      allContent.push(`From ${kb.filename}: ${kb.content.substring(0, 1000)}`);
+      const content = kb.content || '';
+      allContent.push(`From ${kb.filename}: ${content.substring(0, 1000)}`);
       sources.push(kb.filename);
     });
 
     scrapedContent.forEach(sc => {
-      allContent.push(`From ${sc.url}: ${sc.content.substring(0, 1000)}`);
+      const content = sc.content || '';
+      allContent.push(`From ${sc.url}: ${content.substring(0, 1000)}`);
       sources.push(sc.url);
     });
 
