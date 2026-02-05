@@ -108,21 +108,22 @@ router.post('/webhook', async (req, res) => {
       });
     }
 
-    if (!conversation || !conversation.id) {
-      throw new Error('Failed to create or find conversation');
+    const conversationId = conversation.get('id') as string;
+    if (!conversationId) {
+      throw new Error('Failed to get conversation ID');
     }
 
     // Save messages individually to avoid bulkCreate issues
     await Message.create({
       id: uuidv4(),
-      conversation_id: conversation.id,
+      conversation_id: conversationId,
       role: 'user',
       content: message
     });
 
     await Message.create({
       id: uuidv4(),
-      conversation_id: conversation.id,
+      conversation_id: conversationId,
       role: 'assistant',
       content: response
     });
