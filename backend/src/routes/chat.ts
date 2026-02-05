@@ -37,21 +37,20 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Save messages
-    await Message.bulkCreate([
-      {
-        id: uuidv4(),
-        conversation_id: conversation.id,
-        role: 'user',
-        content: message
-      },
-      {
-        id: uuidv4(),
-        conversation_id: conversation.id,
-        role: 'assistant',
-        content: response
-      }
-    ]);
+    // Save messages individually to avoid bulkCreate issues
+    await Message.create({
+      id: uuidv4(),
+      conversation_id: conversation.id,
+      role: 'user',
+      content: message
+    });
+
+    await Message.create({
+      id: uuidv4(),
+      conversation_id: conversation.id,
+      role: 'assistant',
+      content: response
+    });
 
     res.json({
       response,
@@ -89,21 +88,20 @@ router.post('/webhook', async (req, res) => {
       });
     }
 
-    // Save messages
-    await Message.bulkCreate([
-      {
-        id: uuidv4(),
-        conversation_id: conversation.id,
-        role: 'user',
-        content: message
-      },
-      {
-        id: uuidv4(),
-        conversation_id: conversation.id,
-        role: 'assistant',
-        content: response
-      }
-    ]);
+    // Save messages individually to avoid bulkCreate issues
+    await Message.create({
+      id: uuidv4(),
+      conversation_id: conversation.id,
+      role: 'user',
+      content: message
+    });
+
+    await Message.create({
+      id: uuidv4(),
+      conversation_id: conversation.id,
+      role: 'assistant',
+      content: response
+    });
 
     res.json({
       response,
