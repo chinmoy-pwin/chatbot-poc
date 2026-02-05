@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
-import { KnowledgeFile } from '../models/KnowledgeFile';
+import KnowledgeFile from '../models/KnowledgeFile';
 import { FileProcessor } from '../utils/fileProcessor';
 import { PineconeService } from '../services/pineconeService';
 
@@ -36,16 +36,13 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
     const content = await FileProcessor.extractText(req.file.buffer, req.file.originalname);
 
-    const kbFile = new KnowledgeFile({
+    const kbFile = await KnowledgeFile.create({
       id: uuidv4(),
       customer_id,
       filename: req.file.originalname,
       file_type: req.file.originalname.split('.').pop()?.toLowerCase() || 'unknown',
-      content,
-      uploaded_at: new Date()
+      content
     });
-
-    await kbFile.save();
 
     // Upsert to Pinecone in background
     if (pineconeService) {
@@ -70,10 +67,11 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 // Get knowledge files for customer
 router.get('/:customer_id', async (req, res) => {
   try {
-    const files = await KnowledgeFile.find(
-      { customer_id: req.params.customer_id },
-      { content: 0, _id: 0 }
-    ).lean();
+    const files = await KnowledgeFile.findAll({
+      where: { customer_id: req.params.customer_id },
+      attributes: { exclude: ['content'] },
+      order: [['uploaded_at', 'DESC']]
+    });
 
     res.json(files.map(f => ({
       id: f.id,
@@ -90,8 +88,11 @@ router.get('/:customer_id', async (req, res) => {
 // Delete knowledge file
 router.delete('/:file_id', async (req, res) => {
   try {
-    const result = await KnowledgeFile.deleteOne({ id: req.params.file_id });
-    if (result.deletedCount === 0) {
+    const result = await KnowledgeFile.destroy({
+      where: { id: req.params.file_id }
+    });
+    
+    if (result === 0) {
       return res.status(404).json({ detail: 'File not found' });
     }
 
