@@ -37,6 +37,7 @@ app.get('/api', (req: Request, res: Response) => {
   res.json({ message: 'KbaseAI Chatbot API is running' });
 });
 
+app.use('/api/auth', authRouter);
 app.use('/api/customers', customersRouter);
 app.use('/api/knowledge', knowledgeRouter);
 app.use('/api/scrape', scrapingRouter);
