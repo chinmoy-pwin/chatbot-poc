@@ -59,6 +59,6 @@ app.listen(PORT, '0.0.0.0', () => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, closing server...');
-  await mongoose.connection.close();
+  await sequelize.close();
   process.exit(0);
 });
