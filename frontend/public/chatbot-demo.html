@@ -448,9 +448,10 @@
 
     <script>
         // Configuration
-        const BACKEND_URL = 'https://smart-chatbot-91.preview.emergentagent.com'; // Production backend URL
-        const CUSTOMER_ID = 'f603240c-7a0e-4012-9f3f-292466de3acd'; // FastShip Logistics customer ID
+        const BACKEND_URL = 'https://smart-chatbot-91.preview.emergentagent.com';
+        const CUSTOMER_ID = 'f603240c-7a0e-4012-9f3f-292466de3acd';
         let sessionId = null;
+        let hasMessages = false;
 
         // Generate session ID
         function generateSessionId() {
@@ -462,42 +463,56 @@
             sessionId = generateSessionId();
         }
 
+        // Toggle sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('hidden');
+        }
+
         // Add message to chat
         function addMessage(text, isUser = false) {
-            const messagesDiv = document.getElementById('chatMessages');
+            const messagesArea = document.getElementById('messagesArea');
+            const welcomeScreen = document.getElementById('welcomeScreen');
+            
+            // Hide welcome screen on first message
+            if (welcomeScreen && !hasMessages) {
+                welcomeScreen.style.display = 'none';
+                hasMessages = true;
+            }
+
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
             
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const icon = isUser ? '👤' : '🤖';
+            const name = isUser ? 'You' : 'SwiftChain AI';
             
             messageDiv.innerHTML = `
-                <div class="message-bubble">
-                    ${text}
-                    <div class="message-time">${time}</div>
+                <div class="message-header">
+                    <div class="message-icon">${icon}</div>
+                    <span>${name}</span>
                 </div>
+                <div class="message-content">${text}</div>
+                <div class="message-time">${time}</div>
             `;
             
-            messagesDiv.appendChild(messageDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            messagesArea.appendChild(messageDiv);
+            messagesArea.scrollTop = messagesArea.scrollHeight;
         }
 
         // Show typing indicator
         function showTyping(show = true) {
             const typingIndicator = document.getElementById('typingIndicator');
-            if (show) {
-                typingIndicator.classList.add('active');
-            } else {
-                typingIndicator.classList.remove('active');
-            }
-            const messagesDiv = document.getElementById('chatMessages');
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            typingIndicator.classList.toggle('active', show);
+            const messagesArea = document.getElementById('messagesArea');
+            messagesArea.scrollTop = messagesArea.scrollHeight;
         }
 
         // Send message to webhook
-        async function sendMessage() {
+        async function sendMessage(messageText = null) {
             const input = document.getElementById('messageInput');
             const sendButton = document.getElementById('sendButton');
-            const message = input.value.trim();
+            const message = messageText || input.value.trim();
             
             if (!message) return;
 
@@ -537,9 +552,9 @@
                 // Add bot response
                 let botMessage = data.response || 'Sorry, I could not process your request.';
                 
-                // Add sources if available
-                if (data.sources && data.sources.length > 0) {
-                    botMessage += '\n\n<small><i>Sources: ' + data.sources.join(', ') + '</i></small>';
+                // Add sources if available and not null
+                if (data.sources && data.sources.length > 0 && data.sources[0]) {
+                    botMessage += '\n\n<small style="color: #9ca3af;"><i>Sources: ' + data.sources.filter(s => s).join(', ') + '</i></small>';
                 }
                 
                 addMessage(botMessage, false);
@@ -547,7 +562,7 @@
             } catch (error) {
                 showTyping(false);
                 console.error('Error:', error);
-                addMessage('Sorry, I encountered an error. Please make sure the backend is running and try again.', false);
+                addMessage('Sorry, I encountered an error connecting to the server. Please try again later.', false);
             } finally {
                 // Re-enable input
                 input.disabled = false;
@@ -563,10 +578,12 @@
             }
         }
 
-        // Add sample welcome messages
-        setTimeout(() => {
-            addMessage('Hello! How can I assist you with your logistics needs today?', false);
-        }, 1000);
+        // Send example message
+        function sendExampleMessage(message) {
+            const input = document.getElementById('messageInput');
+            input.value = message;
+            sendMessage();
+        }
 
         // Focus input on load
         window.onload = function() {
