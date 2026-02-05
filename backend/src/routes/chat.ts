@@ -42,11 +42,12 @@ router.post('/', async (req, res) => {
       console.log('Created conversation:', conversation.toJSON());
     }
 
-    if (!conversation || !conversation.id) {
-      throw new Error('Failed to create or find conversation');
+    const conversationId = conversation.get('id') as string;
+    if (!conversationId) {
+      throw new Error('Failed to get conversation ID');
     }
 
-    console.log('Using conversation ID:', conversation.id);
+    console.log('Using conversation ID:', conversationId);
 
     // Save messages individually to avoid bulkCreate issues
     const userMessageId = uuidv4();
