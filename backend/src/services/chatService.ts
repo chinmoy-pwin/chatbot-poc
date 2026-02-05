@@ -87,18 +87,24 @@ If the answer is not in the context, say so politely.
 Context:
 ${context}`;
 
-    const completion = await this.openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemMessage },
-        { role: 'user', content: message }
-      ],
-      temperature: 0.7,
-      max_tokens: 1000
-    });
+    try {
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemMessage },
+          { role: 'user', content: message }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      });
 
-    const response = completion.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
-
-    return { response, sources };
+      const response = completion.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
+      return { response, sources };
+    } catch (error) {
+      console.error('OpenAI API error:', error);
+      // Fallback response when API is not available
+      const fallbackResponse = `I received your message: "${message}". However, I'm currently unable to process it due to API limitations. Based on the available knowledge base context, I found ${sources.length} relevant sources: ${sources.join(', ')}.`;
+      return { response: fallbackResponse, sources };
+    }
   }
 }
