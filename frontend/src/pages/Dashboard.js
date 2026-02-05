@@ -1,16 +1,15 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Globe, MessageSquare, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { useAuth } from "@/context/AuthContext";
 
 export default function Dashboard() {
+  const { user, isAdmin } = useAuth();
   const [customers, setCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [stats, setStats] = useState(null);
@@ -30,7 +29,7 @@ export default function Dashboard() {
 
   const loadCustomers = async () => {
     try {
-      const response = await axios.get(`${API}/customers`);
+      const response = await api.get('/customers');
       setCustomers(response.data);
       
       // Auto-select first customer or previously selected
@@ -48,7 +47,7 @@ export default function Dashboard() {
 
   const loadStats = async (customerId) => {
     try {
-      const response = await axios.get(`${API}/stats/${customerId}`);
+      const response = await api.get(`/stats/${customerId}`);
       setStats(response.data);
     } catch (error) {
       console.error("Failed to load stats", error);
@@ -62,7 +61,7 @@ export default function Dashboard() {
     }
     
     try {
-      const response = await axios.post(`${API}/customers`, { name: newCustomerName });
+      const response = await api.post('/customers', { name: newCustomerName });
       toast.success("Customer created successfully");
       setNewCustomerName("");
       setShowCreateForm(false);
