@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { Conversation } from '../models/Conversation';
+import Conversation from '../models/Conversation';
+import Message from '../models/Message';
 import { ChatService } from '../services/chatService';
 
 const router = Router();
@@ -23,15 +24,34 @@ router.post('/', async (req, res) => {
 
     const { response, sources } = await chatService.chat(customer_id, message, sessionId);
 
-    // Store conversation
-    await Conversation.create({
-      customer_id,
-      session_id: sessionId,
-      messages: [
-        { role: 'user', content: message, timestamp: new Date() },
-        { role: 'assistant', content: response, timestamp: new Date() }
-      ]
+    // Find or create conversation
+    let conversation = await Conversation.findOne({
+      where: { session_id: sessionId }
     });
+
+    if (!conversation) {
+      conversation = await Conversation.create({
+        id: uuidv4(),
+        customer_id,
+        session_id: sessionId
+      });
+    }
+
+    // Save messages
+    await Message.bulkCreate([
+      {
+        id: uuidv4(),
+        conversation_id: conversation.id,
+        role: 'user',
+        content: message
+      },
+      {
+        id: uuidv4(),
+        conversation_id: conversation.id,
+        role: 'assistant',
+        content: response
+      }
+    ]);
 
     res.json({
       response,
@@ -56,15 +76,34 @@ router.post('/webhook', async (req, res) => {
 
     const { response, sources } = await chatService.chat(customer_id, message, sessionId);
 
-    // Store conversation
-    await Conversation.create({
-      customer_id,
-      session_id: sessionId,
-      messages: [
-        { role: 'user', content: message, timestamp: new Date() },
-        { role: 'assistant', content: response, timestamp: new Date() }
-      ]
+    // Find or create conversation
+    let conversation = await Conversation.findOne({
+      where: { session_id: sessionId }
     });
+
+    if (!conversation) {
+      conversation = await Conversation.create({
+        id: uuidv4(),
+        customer_id,
+        session_id: sessionId
+      });
+    }
+
+    // Save messages
+    await Message.bulkCreate([
+      {
+        id: uuidv4(),
+        conversation_id: conversation.id,
+        role: 'user',
+        content: message
+      },
+      {
+        id: uuidv4(),
+        conversation_id: conversation.id,
+        role: 'assistant',
+        content: response
+      }
+    ]);
 
     res.json({
       response,
