@@ -51,7 +51,7 @@ router.post('/', async (req, res) => {
 
     // Save messages individually to avoid bulkCreate issues
     const userMessageId = uuidv4();
-    console.log('Creating user message with ID:', userMessageId, 'conversation_id:', conversation.id);
+    console.log('Creating user message with ID:', userMessageId, 'conversation_id:', conversationId);
     
     const userMessage = await Message.create({
       id: userMessageId,
