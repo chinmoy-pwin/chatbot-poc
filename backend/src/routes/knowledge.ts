@@ -1,13 +1,35 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
 import KnowledgeFile from '../models/KnowledgeFile';
 import { FileProcessor } from '../utils/fileProcessor';
 import { PineconeService } from '../services/pineconeService';
 import { authenticate, AuthRequest, canAccessCustomer } from '../middleware/auth';
+import { rateLimitMiddleware } from '../middleware/rateLimit';
+import queueService from '../services/queueService';
+import cacheService from '../services/cacheService';
+import fs from 'fs/promises';
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+
+// Apply rate limiting
+router.use(rateLimitMiddleware(30, 60)); // 30 requests per minute
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, '/tmp/uploads/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
 
 // Initialize Pinecone service
 const pineconeService = process.env.PINECONE_API_KEY && process.env.PINECONE_INDEX_NAME
@@ -23,7 +45,7 @@ if (pineconeService) {
   pineconeService.initializeIndex().catch(console.error);
 }
 
-// Upload knowledge file (Admin or customer owner)
+// Upload knowledge file (Admin or customer owner) - ASYNC
 router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequest, res) => {
   try {
     if (!req.file) {
@@ -40,30 +62,37 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
       return res.status(403).json({ detail: 'You can only upload files for your own account' });
     }
 
-    const content = await FileProcessor.extractText(req.file.buffer, req.file.originalname);
+    const fileId = uuidv4();
+    const filename = req.file.originalname;
+    const filePath = req.file.path;
 
+    // Create database record with pending status
     const kbFile = await KnowledgeFile.create({
-      id: uuidv4(),
+      id: fileId,
       customer_id,
-      filename: req.file.originalname,
-      file_type: req.file.originalname.split('.').pop()?.toLowerCase() || 'unknown',
-      content
+      filename: filename,
+      file_type: filename.split('.').pop()?.toLowerCase() || 'unknown',
+      content: '', // Will be filled by worker
     });
 
-    // Upsert to Pinecone in background
-    if (pineconeService) {
-      pineconeService.upsertKnowledgeFile(
-        kbFile.id,
-        customer_id,
-        req.file.originalname,
-        content
-      ).catch(err => console.error('Pinecone upsert failed:', err));
-    }
+    // Add to job queue for async processing
+    const job = await queueService.addFileProcessJob({
+      fileId,
+      customerId: customer_id,
+      filePath,
+      filename,
+    });
+
+    // Invalidate cache
+    await cacheService.invalidateKnowledgeFiles(customer_id);
+    await cacheService.invalidateStats(customer_id);
 
     res.json({
-      message: 'File uploaded successfully',
+      message: 'File queued for processing',
       file_id: kbFile.id,
-      filename: kbFile.filename
+      filename: kbFile.filename,
+      job_id: job.id,
+      status: 'pending',
     });
   } catch (error) {
     res.status(500).json({ detail: `Error uploading file: ${error}` });
