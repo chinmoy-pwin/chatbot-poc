@@ -149,6 +149,8 @@ router.get('/job/:job_id', authenticate, async (req: AuthRequest, res) => {
   }
 });
 
+export default router;
+
     res.json(files.map(f => ({
       id: f.id,
       customer_id: f.customer_id,
