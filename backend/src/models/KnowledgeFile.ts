@@ -8,6 +8,9 @@ interface KnowledgeFileAttributes {
   filename: string;
   file_type: string;
   content: string;
+  status?: string;
+  job_id?: string;
+  processing_error?: string;
   uploaded_at?: Date;
   updated_at?: Date;
 }
@@ -20,6 +23,9 @@ class KnowledgeFile extends Model<KnowledgeFileAttributes, KnowledgeFileCreation
   public filename!: string;
   public file_type!: string;
   public content!: string;
+  public status?: string;
+  public job_id?: string;
+  public processing_error?: string;
   public readonly uploaded_at!: Date;
   public readonly updated_at!: Date;
 }
@@ -50,6 +56,19 @@ KnowledgeFile.init(
     content: {
       type: DataTypes.TEXT('medium'),
       allowNull: false
+    },
+    status: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      defaultValue: 'pending'
+    },
+    job_id: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    processing_error: {
+      type: DataTypes.TEXT,
+      allowNull: true
     },
     uploaded_at: {
       type: DataTypes.DATE,
