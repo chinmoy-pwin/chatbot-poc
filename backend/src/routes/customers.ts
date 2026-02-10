@@ -134,6 +134,8 @@ router.get('/:customer_id', authenticate, async (req: AuthRequest, res) => {
     res.status(500).json({ detail: `Error fetching customer: ${error}` });
   }
 });
+
+export default router;
     res.status(500).json({ detail: `Error fetching customer: ${error}` });
   }
 });
