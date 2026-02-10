@@ -148,10 +148,8 @@ router.get('/job/:job_id', authenticate, async (req: AuthRequest, res) => {
     res.status(500).json({ detail: `Error fetching job status: ${error}` });
   }
 });
-});
 
-// Delete knowledge file (Admin or customer owner)
-router.delete('/:file_id', authenticate, async (req: AuthRequest, res) => {
+export default router;
   try {
     // First, get the file to check ownership
     const file = await KnowledgeFile.findOne({ where: { id: req.params.file_id } });
