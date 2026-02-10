@@ -102,11 +102,52 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
 // Get knowledge files for customer (Admin or customer owner)
 router.get('/:customer_id', authenticate, canAccessCustomer, async (req: AuthRequest, res) => {
   try {
+    const customer_id = req.params.customer_id;
+
+    // Check cache first
+    const cached = await cacheService.getCachedKnowledgeFiles(customer_id);
+    if (cached) {
+      return res.json(cached);
+    }
+
+    // Fetch from database
     const files = await KnowledgeFile.findAll({
-      where: { customer_id: req.params.customer_id },
+      where: { customer_id },
       attributes: { exclude: ['content'] },
       order: [['uploaded_at', 'DESC']]
     });
+
+    const filesData = files.map(f => ({
+      id: f.id,
+      filename: f.filename,
+      file_type: f.file_type,
+      uploaded_at: f.uploaded_at,
+    }));
+
+    // Cache for 5 minutes
+    await cacheService.setCachedKnowledgeFiles(customer_id, filesData);
+
+    res.json(filesData);
+  } catch (error) {
+    res.status(500).json({ detail: `Error fetching files: ${error}` });
+  }
+});
+
+// Get job status
+router.get('/job/:job_id', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const { job_id } = req.params;
+    const jobStatus = await queueService.getJobStatus(job_id, queueService.JobType.PROCESS_FILE);
+    
+    if (!jobStatus) {
+      return res.status(404).json({ detail: 'Job not found' });
+    }
+
+    res.json(jobStatus);
+  } catch (error) {
+    res.status(500).json({ detail: `Error fetching job status: ${error}` });
+  }
+});
 
     res.json(files.map(f => ({
       id: f.id,
