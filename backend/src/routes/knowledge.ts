@@ -150,31 +150,3 @@ router.get('/job/:job_id', authenticate, async (req: AuthRequest, res) => {
 });
 
 export default router;
-  try {
-    // First, get the file to check ownership
-    const file = await KnowledgeFile.findOne({ where: { id: req.params.file_id } });
-    
-    if (!file) {
-      return res.status(404).json({ detail: 'File not found' });
-    }
-
-    // Check authorization
-    if (req.user?.role !== 'admin' && req.user?.customer_id !== file.customer_id) {
-      return res.status(403).json({ detail: 'You can only delete your own files' });
-    }
-
-    await file.destroy();
-
-    // Delete from Pinecone in background
-    if (pineconeService) {
-      pineconeService.deleteKnowledgeFile(req.params.file_id)
-        .catch(err => console.error('Pinecone delete failed:', err));
-    }
-
-    res.json({ message: 'File deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ detail: `Error deleting file: ${error}` });
-  }
-});
-
-export default router;
