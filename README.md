@@ -439,6 +439,230 @@ cd /app/frontend && yarn start
 - Test database connectivity
 - Check API endpoint responses with curl
 
+
+
+**Deployment process for  multi-tenant chatbot platform on GCP Cloud Run:**
+
+## 🗄️ **Database Deployment (MariaDB/MySQL)**
+
+**Option 1: Cloud SQL (Recommended)**
+- Create a Cloud SQL MySQL instance
+- Choose appropriate tier (db-f1-micro for dev, db-n1-standard-1+ for production)
+- Enable private IP + public IP (or just private with Cloud SQL Proxy)
+- Import your schema: `mysql_schema.sql` via Cloud SQL console or gcloud CLI
+- Get connection details: Host, Port, Database name, User, Password
+
+**Option 2: Self-managed on Compute Engine**
+- Less recommended, more maintenance overhead
+
+---
+
+## 🔧 **Backend Deployment (TypeScript/Express to Cloud Run)**
+
+**Step 1: Prepare Backend**
+- Create a `Dockerfile` in `/backend` directory
+- Base image: `node:18-alpine` or similar
+- Install dependencies: `yarn install --production`
+- Build TypeScript: `yarn build` (outputs to `/dist`)
+- Expose port 8001
+- CMD: `node dist/server.js`
+
+**Step 2: Build Container**
+```
+cd backend
+gcloud builds submit --tag gcr.io/[PROJECT-ID]/kbaseai-backend
+```
+
+**Step 3: Deploy to Cloud Run**
+- Service name: `kbaseai-backend`
+- Region: Choose closest to your users
+- Allow unauthenticated invocations: Yes (since you have JWT auth)
+- Min instances: 0 (or 1 for faster cold starts)
+- Max instances: 10-100 based on expected load
+- Memory: 512MB-1GB
+- CPU: 1-2
+
+**Step 4: Set Environment Variables**
+In Cloud Run service settings:
+- `DB_HOST`: Cloud SQL private IP or connection name
+- `DB_PORT`: 3306
+- `DB_NAME`: kbaseai
+- `DB_USER`: your-db-user
+- `DB_PASSWORD`: use Secret Manager!
+- `JWT_SECRET`: use Secret Manager!
+- `OPENAI_API_KEY`: user's key or your proxy
+- `PINECONE_API_KEY`: user's key
+- `CORS_ORIGINS`: Your frontend URL
+- `PORT`: 8001
+
+**Step 5: Connect to Cloud SQL**
+- Enable Cloud SQL Admin API
+- Add Cloud SQL connection in Cloud Run service settings
+- Format: `project:region:instance-name`
+- Use Unix socket path: `/cloudsql/[CONNECTION_NAME]`
+- Update `DB_HOST` to socket path
+
+---
+
+## 🎨 **Frontend Deployment (React)**
+
+**Option 1: Cloud Run (Container)**
+- Create `Dockerfile` with nginx
+- Build React: `yarn build` → creates `/build` folder
+- Serve static files via nginx
+- Configure nginx to proxy `/api` to backend Cloud Run URL
+- Environment variables baked into build (use `.env.production`)
+
+**Option 2: Firebase Hosting (Easier)**
+- `firebase init hosting`
+- Build: `yarn build`
+- Deploy: `firebase deploy`
+- Configure rewrites for `/api` to backend Cloud Run URL
+- Auto CDN, SSL, custom domain
+
+**Option 3: Cloud Storage + Load Balancer**
+- Upload build folder to Cloud Storage bucket
+- Enable static website hosting
+- Create Cloud Load Balancer
+- Backend requests → Cloud Run backend
+- Frontend requests → Cloud Storage
+
+---
+
+## 🔐 **Environment Variables & Secrets**
+
+**Secret Manager (Recommended):**
+1. Store sensitive data in Secret Manager:
+   - `DB_PASSWORD`
+   - `JWT_SECRET`
+   - `OPENAI_API_KEY`
+   - `PINECONE_API_KEY`
+
+2. Grant Cloud Run service account access to secrets
+
+3. Mount secrets as environment variables in Cloud Run
+
+**Frontend Environment:**
+- Create `.env.production`:
+  ```
+  REACT_APP_BACKEND_URL=https://kbaseai-backend-xxx.run.app
+  ```
+- Build with production env: `yarn build`
+
+---
+
+## 🌐 **Networking & Domain Setup**
+
+**Backend Domain:**
+- Cloud Run provides: `https://kbaseai-backend-xxx.run.app`
+- Custom domain: Map via Cloud Run domain mappings
+- Example: `api.yourdomain.com`
+
+**Frontend Domain:**
+- Firebase Hosting: `yourapp.web.app` or custom domain
+- Cloud Run: Custom domain mapping
+- Example: `app.yourdomain.com`
+
+**CORS Configuration:**
+- Update backend `CORS_ORIGINS` to include frontend URLs
+- Include both development and production URLs
+
+---
+
+## 📊 **Deployment Workflow**
+
+**1. Initial Setup (One-time):**
+```
+1. Create Cloud SQL instance
+2. Import database schema
+3. Create Secret Manager secrets
+4. Enable required APIs (Cloud Run, Cloud SQL, Secret Manager)
+5. Set up IAM roles for service accounts
+```
+
+**2. Backend Deployment:**
+```
+1. Build Docker image
+2. Push to Container Registry (GCR) or Artifact Registry
+3. Deploy to Cloud Run
+4. Configure environment variables + Cloud SQL connection
+5. Test backend: curl https://backend-url/api
+```
+
+**3. Frontend Deployment:**
+```
+1. Update REACT_APP_BACKEND_URL to production backend URL
+2. Build React app: yarn build
+3. Deploy to Firebase Hosting / Cloud Run / Cloud Storage
+4. Test frontend: Visit frontend URL
+```
+
+**4. Database Migrations:**
+```
+1. Connect to Cloud SQL via Cloud SQL Proxy
+2. Run migration scripts if needed
+3. Or use Cloud SQL console to import SQL files
+```
+
+---
+
+## 💰 **Cost Optimization**
+
+**Cloud Run:**
+- Pay only when processing requests
+- Min instances = 0 → No idle costs
+- Set CPU allocation: "CPU only allocated during request"
+
+**Cloud SQL:**
+- Use appropriate tier (don't overprovision)
+- Enable automatic backups (small cost)
+- Use private IP to avoid egress charges
+
+**Secrets:**
+- Secret Manager: ~$0.06 per 10K accesses
+- Cache secrets in application memory
+
+---
+
+## 🔄 **CI/CD (Optional but Recommended)**
+
+**Using Cloud Build:**
+1. Create `cloudbuild.yaml` for backend + frontend
+2. Trigger on git push to main branch
+3. Automated: Build → Test → Deploy
+4. Rollback capability via Cloud Run revisions
+
+**Using GitHub Actions:**
+1. Set up GCP service account with deployment permissions
+2. Store credentials as GitHub secrets
+3. Workflow: Build → Push to GCR → Deploy to Cloud Run
+
+---
+
+## 📝 **Key Considerations**
+
+1. **Multi-tenancy:** Your database already supports it (customer_id isolation)
+2. **Rate Limiting:** Add Cloud Armor for DDoS protection
+3. **Monitoring:** Enable Cloud Logging & Monitoring
+4. **Backups:** Automate Cloud SQL backups
+5. **SSL:** Cloud Run provides free SSL, Firebase Hosting too
+6. **Scaling:** Cloud Run auto-scales, Cloud SQL may need manual scaling
+
+---
+
+## 🚀 **Quick Deployment Order**
+
+1. **Database First** → Cloud SQL instance + import schema
+2. **Backend Second** → Cloud Run with DB connection
+3. **Frontend Last** → Point to backend URL, deploy
+
+---
+
+**Would you like me to:**
+1. Generate the actual Dockerfile and deployment configs?
+2. Create a deployment script for automation?
+3. Continue with updating the remaining app pages?
+
 ## License
 This project is built for demonstration and production use.
 
