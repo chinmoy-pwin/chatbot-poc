@@ -148,19 +148,6 @@ router.get('/job/:job_id', authenticate, async (req: AuthRequest, res) => {
     res.status(500).json({ detail: `Error fetching job status: ${error}` });
   }
 });
-
-export default router;
-
-    res.json(files.map(f => ({
-      id: f.id,
-      customer_id: f.customer_id,
-      filename: f.filename,
-      file_type: f.file_type,
-      uploaded_at: f.uploaded_at
-    })));
-  } catch (error) {
-    res.status(500).json({ detail: `Error fetching files: ${error}` });
-  }
 });
 
 // Delete knowledge file (Admin or customer owner)
