@@ -658,13 +658,3 @@ In Cloud Run service settings:
 
 ---
 
-**Would you like me to:**
-1. Generate the actual Dockerfile and deployment configs?
-2. Create a deployment script for automation?
-3. Continue with updating the remaining app pages?
-
-## License
-This project is built for demonstration and production use.
-
-## Version
-**v2.0.0** - MySQL + TypeScript + Pinecone Integration
