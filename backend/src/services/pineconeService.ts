@@ -18,11 +18,13 @@ export class PineconeService {
 
   constructor(apiKey: string, indexName: string, openaiKey: string) {
     this.pinecone = new Pinecone({ apiKey });
-    this.openai = new OpenAI({ 
+    // Use the real OpenAI API for embeddings (Emergent/proxy APIs don't support embeddings)
+    this.openai = new OpenAI({
       apiKey: openaiKey,
-      baseURL: process.env.OPENAI_BASE_URL || 'https://api.emergent.sh/openai/v1'
+      baseURL: process.env.OPENAI_BASE_URL
     });
     this.indexName = indexName;
+    console.log('PineconeService initialized with real OpenAI API for embeddings');
   }
 
   // Chunk text into smaller pieces (roughly 500 tokens each)
@@ -59,11 +61,14 @@ export class PineconeService {
   // Generate embeddings for text
   private async generateEmbedding(text: string): Promise<number[]> {
     try {
+      console.log(`Generating embedding for text of length ${text.length}`);
       const response = await this.openai.embeddings.create({
         model: 'text-embedding-3-small',
-        input: text.substring(0, 8000) // Limit to 8k chars for safety
+        input: text.substring(0, 8000), // Limit to 8k chars for safety
+        dimensions: 1024  // Match Pinecone index dimension
       });
 
+      console.log(`Embedding generated successfully, dimension: ${response.data[0].embedding.length}`);
       return response.data[0].embedding;
     } catch (error) {
       console.error('Error generating embedding:', error);
@@ -84,10 +89,17 @@ export class PineconeService {
 
       console.log(`Upserting ${chunks.length} chunks for file ${filename}`);
 
+      if (chunks.length === 0) {
+        console.log('No chunks to upsert - content may be too short');
+        return;
+      }
+
       // Process chunks in batches of 10 for better performance
       const batchSize = 10;
       for (let i = 0; i < chunks.length; i += batchSize) {
         const batchChunks = chunks.slice(i, i + batchSize);
+        console.log(`Processing batch ${i / batchSize + 1}, chunks: ${batchChunks.length}`);
+
         const vectors = await Promise.all(
           batchChunks.map(async (chunk, idx) => {
             const embedding = await this.generateEmbedding(chunk);
@@ -106,7 +118,17 @@ export class PineconeService {
           })
         );
 
-        await index.upsert(vectors);
+        // Filter out any vectors that failed to generate embeddings
+        const validVectors = vectors.filter(v => v.values && v.values.length > 0);
+        console.log(`Generated ${validVectors.length} valid vectors out of ${vectors.length}`);
+
+        if (validVectors.length > 0) {
+          // Pinecone SDK v7+ requires { records: [...] } format
+          await index.upsert({ records: validVectors } as any);
+          console.log(`Batch upserted ${validVectors.length} vectors`);
+        } else {
+          console.log('No valid vectors to upsert in this batch');
+        }
       }
 
       console.log(`Successfully upserted ${chunks.length} chunks for ${filename}`);
@@ -129,6 +151,11 @@ export class PineconeService {
 
       console.log(`Upserting ${chunks.length} chunks for URL ${url}`);
 
+      if (chunks.length === 0) {
+        console.log('No chunks to upsert - content may be too short');
+        return;
+      }
+
       const batchSize = 10;
       for (let i = 0; i < chunks.length; i += batchSize) {
         const batchChunks = chunks.slice(i, i + batchSize);
@@ -149,7 +176,17 @@ export class PineconeService {
           })
         );
 
-        await index.upsert(vectors);
+        // Filter out any vectors that failed to generate embeddings
+        const validVectors = vectors.filter(v => v.values && v.values.length > 0);
+        console.log(`Generated ${validVectors.length} valid vectors out of ${vectors.length}`);
+
+        if (validVectors.length > 0) {
+          // Pinecone SDK v7+ requires { records: [...] } format
+          await index.upsert({ records: validVectors } as any);
+          console.log(`Batch upserted ${validVectors.length} vectors`);
+        } else {
+          console.log('No valid vectors to upsert in this batch');
+        }
       }
 
       console.log(`Successfully upserted ${chunks.length} chunks for ${url}`);
@@ -177,10 +214,10 @@ export class PineconeService {
       });
 
       const results = queryResponse.matches.map(match => {
-        const metadata = match.metadata as VectorMetadata;
+        const metadata = match.metadata as unknown as VectorMetadata;
         return {
           text: metadata.text,
-          source: metadata.source_type === 'file' 
+          source: metadata.source_type === 'file'
             ? metadata.filename || 'Unknown file'
             : metadata.url || 'Unknown URL',
           score: match.score || 0
@@ -199,7 +236,7 @@ export class PineconeService {
   async deleteKnowledgeFile(fileId: string): Promise<void> {
     try {
       const index = this.pinecone.index(this.indexName);
-      
+
       // Delete all chunks for this file
       // Note: Pinecone deleteMany with prefix filter
       await index.deleteMany({

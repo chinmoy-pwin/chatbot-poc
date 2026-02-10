@@ -1,13 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import axios from "axios";
 import { useDropzone } from "react-dropzone";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import api from "@/lib/api";
 
 export default function KnowledgeBase() {
   const [files, setFiles] = useState([]);
@@ -24,7 +21,7 @@ export default function KnowledgeBase() {
 
   const loadFiles = async (customerId) => {
     try {
-      const response = await axios.get(`${API}/knowledge/${customerId}`);
+      const response = await api.get(`/knowledge/${customerId}`);
       setFiles(response.data);
     } catch (error) {
       toast.error("Failed to load knowledge files");
@@ -45,10 +42,10 @@ export default function KnowledgeBase() {
         formData.append('file', file);
         formData.append('customer_id', customerId);
 
-        await axios.post(`${API}/knowledge/upload`, formData, {
+        await api.post(`/knowledge/upload`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
-        
+
         toast.success(`${file.name} uploaded successfully`);
       } catch (error) {
         toast.error(`Failed to upload ${file.name}`);
@@ -73,7 +70,7 @@ export default function KnowledgeBase() {
 
   const deleteFile = async (fileId) => {
     try {
-      await axios.delete(`${API}/knowledge/${fileId}`);
+      await api.delete(`/knowledge/${fileId}`);
       toast.success("File deleted successfully");
       loadFiles(customerId);
     } catch (error) {
@@ -98,11 +95,10 @@ export default function KnowledgeBase() {
           <div
             {...getRootProps()}
             data-testid="dropzone"
-            className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all duration-300 ${
-              isDragActive
-                ? 'border-primary bg-primary/5 scale-[1.02]'
-                : 'border-border hover:border-primary hover:bg-secondary/50'
-            }`}
+            className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all duration-300 ${isDragActive
+              ? 'border-primary bg-primary/5 scale-[1.02]'
+              : 'border-border hover:border-primary hover:bg-secondary/50'
+              }`}
           >
             <input {...getInputProps()} data-testid="file-input" />
             {uploading ? (
@@ -154,7 +150,7 @@ export default function KnowledgeBase() {
                       <div>
                         <p className="font-medium" data-testid={`filename-${fileId}`}>{filename}</p>
                         <p className="text-sm text-muted-foreground">
-                          {fileType.toUpperCase()} • Uploaded {new Date(uploadedAt).toLocaleDateString()}
+                          {(fileType || 'unknown').toUpperCase()} • Uploaded {uploadedAt ? new Date(uploadedAt).toLocaleDateString() : 'N/A'}
                         </p>
                       </div>
                     </div>
