@@ -174,7 +174,7 @@ class JobProcessors {
     });
   }
 
-  // OpenAI chat worker (with rate limiting)
+  // OpenAI chat worker (with rate limiting and caching)
   private startOpenAIProcessor() {
     const queue = queueService.getOpenAIQueue();
 
@@ -184,30 +184,58 @@ class JobProcessors {
       console.log(`Processing chat for session: ${sessionId}`);
       
       try {
+        job.progress(10);
+
+        // Check cache first for existing conversation
+        let conversation = await cacheService.getCachedConversation(sessionId);
+        
+        if (!conversation) {
+          // Not in cache, check database
+          conversation = await Conversation.findOne({
+            where: { session_id: sessionId }
+          });
+
+          // If found in DB, cache it
+          if (conversation) {
+            await cacheService.setCachedConversation(sessionId, conversation.toJSON());
+          }
+        } else {
+          console.log(`✓ Conversation cache hit for session: ${sessionId}`);
+        }
+
         job.progress(30);
 
         // Call OpenAI with context
         const { response, sources } = await chatService.chat(customerId, message, sessionId);
 
-        job.progress(80);
+        job.progress(70);
 
-        // Find or create conversation
-        let conversation = await Conversation.findOne({
-          where: { session_id: sessionId }
-        });
-
+        // If conversation doesn't exist, create it
         if (!conversation) {
-          conversation = await Conversation.create({
+          const newConversation = await Conversation.create({
             id: uuidv4(),
             customer_id: customerId,
             session_id: sessionId,
           });
+          
+          conversation = newConversation;
+          
+          // Cache the new conversation
+          await cacheService.setCachedConversation(sessionId, newConversation.toJSON());
+          console.log(`✓ New conversation created and cached: ${sessionId}`);
         }
+
+        job.progress(80);
+
+        // Get conversation ID (handle both cached and DB objects)
+        const conversationId = typeof conversation === 'object' && conversation.id 
+          ? conversation.id 
+          : (conversation as any).id;
 
         // Save user message
         await Message.create({
           id: uuidv4(),
-          conversation_id: conversation.id,
+          conversation_id: conversationId,
           content: message,
           sender: 'user',
         });
@@ -215,20 +243,26 @@ class JobProcessors {
         // Save bot response
         await Message.create({
           id: uuidv4(),
-          conversation_id: conversation.id,
+          conversation_id: conversationId,
           content: response,
           sender: 'bot',
         });
 
-        job.progress(100);
+        job.progress(95);
 
-        // Invalidate cache
+        // Invalidate stats cache (conversation count changed)
         await cacheService.invalidateStats(customerId);
+
+        job.progress(100);
 
         console.log(`✓ Chat processed for session: ${sessionId}`);
         return { success: true, response, sources, sessionId };
       } catch (error: any) {
         console.error(`✗ Chat processing failed: ${error.message}`);
+        
+        // Invalidate conversation cache on error to force fresh lookup
+        await cacheService.invalidateConversation(sessionId);
+        
         throw error;
       }
     });
