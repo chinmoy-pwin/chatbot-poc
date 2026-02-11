@@ -35,17 +35,37 @@ class CacheService {
     await redisService.del(`stats:${customerId}`);
   }
 
-  // Conversation caching (active sessions)
+  // Conversation caching (active sessions - 30 min TTL)
   async getCachedConversation(sessionId: string): Promise<any | null> {
-    return await redisService.getJSON(`conversation:${sessionId}`);
+    const cached = await redisService.getJSON(`conversation:${sessionId}`);
+    if (cached) {
+      console.log(`[Cache HIT] Conversation: ${sessionId}`);
+    }
+    return cached;
   }
 
   async setCachedConversation(sessionId: string, conversation: any): Promise<void> {
     await redisService.setJSON(`conversation:${sessionId}`, conversation, CACHE_TTL.CONVERSATION);
+    console.log(`[Cache SET] Conversation: ${sessionId} (TTL: ${CACHE_TTL.CONVERSATION}s)`);
   }
 
   async invalidateConversation(sessionId: string): Promise<void> {
     await redisService.del(`conversation:${sessionId}`);
+    console.log(`[Cache DEL] Conversation: ${sessionId}`);
+  }
+
+  // Get conversation with metadata (for monitoring)
+  async getConversationCacheInfo(sessionId: string): Promise<{ exists: boolean; ttl?: number }> {
+    const exists = await redisService.get(`conversation:${sessionId}`);
+    if (!exists) {
+      return { exists: false };
+    }
+    
+    // Get TTL from Redis
+    const client = redisService.getClient();
+    const ttl = await client.ttl(`conversation:${sessionId}`);
+    
+    return { exists: true, ttl };
   }
 
   // Knowledge files caching
