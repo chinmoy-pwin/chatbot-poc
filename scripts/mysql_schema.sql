@@ -40,27 +40,37 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Table: knowledge_files
 -- Purpose: Store uploaded knowledge base files with extracted text content
+-- Note: Supports async processing with job queue (added v2.0)
 CREATE TABLE IF NOT EXISTS knowledge_files (
   id VARCHAR(36) PRIMARY KEY,
   customer_id VARCHAR(36) NOT NULL,
   filename VARCHAR(255) NOT NULL,
   file_type VARCHAR(50) NOT NULL,
   content MEDIUMTEXT NOT NULL,
+  status VARCHAR(50) DEFAULT 'pending',  -- pending, processing, completed, failed
+  job_id VARCHAR(100) DEFAULT NULL,       -- Bull queue job ID for tracking
+  processing_error TEXT DEFAULT NULL,     -- Error message if processing failed
   uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
   INDEX idx_customer_id (customer_id),
   INDEX idx_uploaded_at (uploaded_at),
-  INDEX idx_customer_uploaded (customer_id, uploaded_at)
+  INDEX idx_customer_uploaded (customer_id, uploaded_at),
+  INDEX idx_status (status),
+  INDEX idx_job_id (job_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Table: scraped_contents
 -- Purpose: Store scraped website content for knowledge base
+-- Note: Supports async scraping with job queue (added v2.0)
 CREATE TABLE IF NOT EXISTS scraped_contents (
   id VARCHAR(36) PRIMARY KEY,
   customer_id VARCHAR(36) NOT NULL,
   url VARCHAR(1024) NOT NULL,
   content MEDIUMTEXT NOT NULL,
+  status VARCHAR(50) DEFAULT 'pending',  -- pending, processing, completed, failed
+  job_id VARCHAR(100) DEFAULT NULL,       -- Bull queue job ID for tracking
+  processing_error TEXT DEFAULT NULL,     -- Error message if scraping failed
   scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
@@ -68,7 +78,9 @@ CREATE TABLE IF NOT EXISTS scraped_contents (
   INDEX idx_url (url(255)),
   INDEX idx_scraped_at (scraped_at),
   INDEX idx_customer_url (customer_id, url(255)),
-  INDEX idx_customer_scraped (customer_id, scraped_at)
+  INDEX idx_customer_scraped (customer_id, scraped_at),
+  INDEX idx_status (status),
+  INDEX idx_job_id (job_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Table: scrape_configs

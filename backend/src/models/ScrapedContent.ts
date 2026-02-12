@@ -7,6 +7,9 @@ interface ScrapedContentAttributes {
   customer_id: string;
   url: string;
   content: string;
+  status?: string;
+  job_id?: string;
+  processing_error?: string;
   scraped_at?: Date;
   updated_at?: Date;
 }
@@ -18,6 +21,9 @@ class ScrapedContent extends Model<ScrapedContentAttributes, ScrapedContentCreat
   public customer_id!: string;
   public url!: string;
   public content!: string;
+  public status?: string;
+  public job_id?: string;
+  public processing_error?: string;
   public readonly scraped_at!: Date;
   public readonly updated_at!: Date;
 }
@@ -44,6 +50,19 @@ ScrapedContent.init(
     content: {
       type: DataTypes.TEXT('medium'),
       allowNull: false
+    },
+    status: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      defaultValue: 'pending'
+    },
+    job_id: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    processing_error: {
+      type: DataTypes.TEXT,
+      allowNull: true
     },
     scraped_at: {
       type: DataTypes.DATE,

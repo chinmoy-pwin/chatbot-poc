@@ -19,15 +19,33 @@ export default function Dashboard() {
   const [showCreateForm, setShowCreateForm] = useState(false);
 
   useEffect(() => {
-    loadCustomers();
-  }, []);
+    if (isAdmin) {
+      // Admin: Load all customers
+      loadCustomers();
+    } else if (user?.customer_id) {
+      // Customer: Load their own customer data
+      loadCustomerById(user.customer_id);
+    }
+  }, [isAdmin, user]);
 
   useEffect(() => {
     if (selectedCustomer) {
       loadStats(selectedCustomer.id);
-      localStorage.setItem('selectedCustomerId', selectedCustomer.id);
+      if (isAdmin) {
+        localStorage.setItem('selectedCustomerId', selectedCustomer.id);
+      }
     }
-  }, [selectedCustomer]);
+  }, [selectedCustomer, isAdmin]);
+
+  const loadCustomerById = async (customerId) => {
+    try {
+      const response = await api.get(`/customers/${customerId}`);
+      setSelectedCustomer(response.data);
+      setCustomers([response.data]); // Set as single customer array
+    } catch (error) {
+      toast.error("Failed to load customer data");
+    }
+  };
 
   const loadCustomers = async () => {
     try {
@@ -78,58 +96,62 @@ export default function Dashboard() {
     <div className="p-6 md:p-12 space-y-8" data-testid="dashboard-page">
       <div>
         <h1 className="text-4xl font-bold text-foreground mb-2" data-testid="dashboard-title">Dashboard</h1>
-        <p className="text-muted-foreground">Manage your AI chatbot agents</p>
+        <p className="text-muted-foreground">
+          {isAdmin ? 'Manage your AI chatbot agents' : `Welcome back, ${user?.name}!`}
+        </p>
       </div>
 
-      {/* Customer Selection */}
-      <Card data-testid="customer-selection-card">
-        <CardHeader>
-          <CardTitle>Select Customer</CardTitle>
-          <CardDescription>Choose a customer to view their chatbot configuration</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {customers && customers.length > 0 && customers.map((customer) => (
-              <Button
-                key={customer.id}
-                data-testid={`customer-${customer.id}`}
-                variant={selectedCustomer?.id === customer.id ? "default" : "outline"}
-                onClick={() => setSelectedCustomer(customer)}
-                className="rounded-full"
-              >
-                {customer.name}
-              </Button>
-            ))}
-          </div>
-          
-          {showCreateForm ? (
-            <div className="space-y-3 pt-4 border-t">
-              <Label htmlFor="customer-name">New Customer Name</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="customer-name"
-                  data-testid="new-customer-input"
-                  placeholder="Enter customer name"
-                  value={newCustomerName}
-                  onChange={(e) => setNewCustomerName(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && createCustomer()}
-                />
-                <Button data-testid="save-customer-btn" onClick={createCustomer}>Save</Button>
-                <Button data-testid="cancel-customer-btn" variant="outline" onClick={() => setShowCreateForm(false)}>Cancel</Button>
-              </div>
+      {/* Customer Selection - Only for Admin */}
+      {isAdmin && (
+        <Card data-testid="customer-selection-card">
+          <CardHeader>
+            <CardTitle>Select Customer</CardTitle>
+            <CardDescription>Choose a customer to view their chatbot configuration</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {customers && customers.length > 0 && customers.map((customer) => (
+                <Button
+                  key={customer.id}
+                  data-testid={`customer-${customer.id}`}
+                  variant={selectedCustomer?.id === customer.id ? "default" : "outline"}
+                  onClick={() => setSelectedCustomer(customer)}
+                  className="rounded-full"
+                >
+                  {customer.name}
+                </Button>
+              ))}
             </div>
-          ) : (
-            <Button 
-              data-testid="create-customer-btn"
-              variant="outline" 
-              onClick={() => setShowCreateForm(true)}
-              className="w-full rounded-full"
-            >
-              + Create New Customer
-            </Button>
-          )}
-        </CardContent>
-      </Card>
+            
+            {showCreateForm ? (
+              <div className="space-y-3 pt-4 border-t">
+                <Label htmlFor="customer-name">New Customer Name</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="customer-name"
+                    data-testid="new-customer-input"
+                    placeholder="Enter customer name"
+                    value={newCustomerName}
+                    onChange={(e) => setNewCustomerName(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && createCustomer()}
+                  />
+                  <Button data-testid="save-customer-btn" onClick={createCustomer}>Save</Button>
+                  <Button data-testid="cancel-customer-btn" variant="outline" onClick={() => setShowCreateForm(false)}>Cancel</Button>
+                </div>
+              </div>
+            ) : (
+              <Button 
+                data-testid="create-customer-btn"
+                variant="outline" 
+                onClick={() => setShowCreateForm(true)}
+                className="w-full rounded-full"
+              >
+                + Create New Customer
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats */}
       {selectedCustomer && stats && (

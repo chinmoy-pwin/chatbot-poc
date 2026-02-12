@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, Trash2, Loader2 } from "lucide-react";
+import { Upload, FileText, Trash2, Loader2, CheckCircle, XCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 
@@ -19,12 +19,26 @@ export default function KnowledgeBase() {
     }
   }, []);
 
+  // Auto-refresh to check status updates
+  useEffect(() => {
+    if (!customerId) return;
+    
+    const interval = setInterval(() => {
+      // Only refresh if there are pending/processing files
+      if (files.some(f => f.status === 'pending' || f.status === 'processing')) {
+        loadFiles(customerId);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [customerId, files]);
+
   const loadFiles = async (customerId) => {
     try {
       const response = await api.get(`/knowledge/${customerId}`);
       setFiles(response.data);
     } catch (error) {
-      toast.error("Failed to load knowledge files");
+      console.error("Failed to load knowledge files", error);
     }
   };
 
@@ -49,6 +63,7 @@ export default function KnowledgeBase() {
         toast.success(`${file.name} uploaded successfully`);
       } catch (error) {
         toast.error(`Failed to upload ${file.name}`);
+        console.error(error);
       }
     }
 
@@ -65,7 +80,8 @@ export default function KnowledgeBase() {
       'application/json': ['.json'],
       'text/csv': ['.csv'],
       'text/markdown': ['.md']
-    }
+    },
+    maxSize: 10 * 1024 * 1024 // 10MB
   });
 
   const deleteFile = async (fileId) => {
@@ -78,18 +94,55 @@ export default function KnowledgeBase() {
     }
   };
 
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="w-5 h-5 text-green-600" />;
+      case 'failed':
+        return <XCircle className="w-5 h-5 text-red-600" />;
+      case 'processing':
+        return <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />;
+      case 'pending':
+        return <Clock className="w-5 h-5 text-yellow-600" />;
+      default:
+        return <FileText className="w-5 h-5 text-gray-600" />;
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      completed: 'bg-green-100 text-green-800',
+      failed: 'bg-red-100 text-red-800',
+      processing: 'bg-blue-100 text-blue-800',
+      pending: 'bg-yellow-100 text-yellow-800',
+    };
+    const text = status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${badges[status] || 'bg-gray-100 text-gray-800'}`}>
+        {text}
+      </span>
+    );
+  };
+
+  const hasProcessingFiles = files.some(f => f.status === 'pending' || f.status === 'processing');
+
   return (
     <div className="p-6 md:p-12 space-y-8" data-testid="knowledge-base-page">
       <div>
         <h1 className="text-4xl font-bold text-foreground mb-2" data-testid="kb-title">Knowledge Base</h1>
-        <p className="text-muted-foreground">Upload documents to train your chatbot</p>
+        <p className="text-muted-foreground">
+          Upload documents to train your chatbot. Files process in the background.
+        </p>
       </div>
 
       {/* Upload Area */}
       <Card data-testid="upload-card">
         <CardHeader>
           <CardTitle>Upload Files</CardTitle>
-          <CardDescription>Supported formats: PDF, DOCX, TXT, JSON, CSV, MD</CardDescription>
+          <CardDescription>
+            Supported formats: PDF, DOCX, TXT, JSON, CSV, MD (max 10MB)
+            {hasProcessingFiles && ' • Auto-refreshing every 5s'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div
@@ -125,7 +178,9 @@ export default function KnowledgeBase() {
       <Card data-testid="files-list-card">
         <CardHeader>
           <CardTitle>Uploaded Files</CardTitle>
-          <CardDescription>{files.length} files in knowledge base</CardDescription>
+          <CardDescription>
+            {files.length} file{files.length !== 1 ? 's' : ''} in knowledge base
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {files.length === 0 ? (
@@ -154,18 +209,22 @@ export default function KnowledgeBase() {
                         </p>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      data-testid={`delete-file-${fileId}`}
-                      onClick={() => deleteFile(fileId)}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </div>
-                );
-              }) : null}
+                  <div className="flex items-center gap-3">
+                    {getStatusBadge(file.status)}
+                    {file.status === 'completed' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteFile(file.id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>

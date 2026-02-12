@@ -2,6 +2,8 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import sequelize from './config/database';
+import redisService from './services/redisService';
+import jobProcessors from './services/jobProcessors';
 import authRouter from './routes/auth';
 import customersRouter from './routes/customers';
 import knowledgeRouter from './routes/knowledge';
@@ -32,6 +34,13 @@ sequelize.authenticate()
   .then(() => console.log('✓ Connected to MySQL'))
   .catch(err => console.error('✗ MySQL connection error:', err));
 
+// Start job processors
+if (redisService.isReady()) {
+  jobProcessors.startProcessors();
+} else {
+  console.warn('⚠ Redis not available - job processing disabled');
+}
+
 // Routes
 app.get('/api', (req: Request, res: Response) => {
   res.json({ message: 'KbaseAI Chatbot API is running' });
@@ -60,7 +69,15 @@ app.listen(PORT, '0.0.0.0', () => {
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, closing server...');
+  console.log('SIGTERM received, closing connections...');
   await sequelize.close();
+  await redisService.disconnect();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT received, closing connections...');
+  await sequelize.close();
+  await redisService.disconnect();
   process.exit(0);
 });
