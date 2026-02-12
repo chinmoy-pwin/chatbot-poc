@@ -27,8 +27,8 @@ export class ChatService {
     if (this.pineconeService) {
       try {
         const results = await this.pineconeService.queryRelevantContext(customerId, query, 5);
-        
-        const context = results.map((r, idx) => 
+
+        const context = results.map((r, idx) =>
           `[${idx + 1}] From ${r.source}:\n${r.text}`
         ).join('\n\n');
 

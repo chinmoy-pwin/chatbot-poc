@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import api from '@/lib/api';
 import { useDropzone } from "react-dropzone";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, Trash2, Loader2, CheckCircle, XCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
+import api from "@/lib/api";
 
 export default function KnowledgeBase() {
   const [files, setFiles] = useState([]);
@@ -56,11 +56,11 @@ export default function KnowledgeBase() {
         formData.append('file', file);
         formData.append('customer_id', customerId);
 
-        const response = await api.post('/knowledge/upload', formData, {
+        await api.post(`/knowledge/upload`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
-        
-        toast.success(response.data.message || `${file.name} uploaded! Processing in background...`);
+
+        toast.success(`${file.name} uploaded successfully`);
       } catch (error) {
         toast.error(`Failed to upload ${file.name}`);
         console.error(error);
@@ -148,11 +148,10 @@ export default function KnowledgeBase() {
           <div
             {...getRootProps()}
             data-testid="dropzone"
-            className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all duration-300 ${
-              isDragActive
-                ? 'border-primary bg-primary/5 scale-[1.02]'
-                : 'border-border hover:border-primary hover:bg-secondary/50'
-            }`}
+            className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all duration-300 ${isDragActive
+              ? 'border-primary bg-primary/5 scale-[1.02]'
+              : 'border-border hover:border-primary hover:bg-secondary/50'
+              }`}
           >
             <input {...getInputProps()} data-testid="file-input" />
             {uploading ? (
@@ -190,19 +189,25 @@ export default function KnowledgeBase() {
             </div>
           ) : (
             <div className="space-y-2">
-              {files.map((file) => (
-                <div
-                  key={file.id}
-                  data-testid={`file-${file.id}`}
-                  className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors duration-200"
-                >
-                  <div className="flex items-center gap-3 flex-1">
-                    {getStatusIcon(file.status)}
-                    <div className="flex-1">
-                      <p className="font-medium">{file.filename}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {file.file_type?.toUpperCase()} • Uploaded {new Date(file.uploaded_at).toLocaleDateString()}
-                      </p>
+              {files && files.length > 0 ? files.map((file) => {
+                const fileId = file.id;
+                const filename = file.filename;
+                const fileType = file.file_type;
+                const uploadedAt = file.uploaded_at;
+                return (
+                  <div
+                    key={fileId}
+                    data-testid={`file-${fileId}`}
+                    className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors duration-200"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="font-medium" data-testid={`filename-${fileId}`}>{filename}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {(fileType || 'unknown').toUpperCase()} • Uploaded {uploadedAt ? new Date(uploadedAt).toLocaleDateString() : 'N/A'}
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">

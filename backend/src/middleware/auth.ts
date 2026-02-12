@@ -16,14 +16,15 @@ export interface AuthRequest extends Request {
 
 export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.replace('Bearer ', '');
 
     if (!token) {
       return res.status(401).json({ detail: 'Authentication required' });
     }
 
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    
+
     const user = await User.findOne({ where: { id: decoded.id } });
 
     if (!user) {
@@ -46,28 +47,28 @@ export const isAdmin = (req: AuthRequest, res: Response, next: NextFunction) => 
 
 export const isCustomerOrAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
   const customerId = req.params.customer_id || req.body.customer_id;
-  
+
   if (req.user?.role === 'admin') {
     return next();
   }
-  
+
   if (req.user?.role === 'customer' && req.user.customer_id === customerId) {
     return next();
   }
-  
+
   return res.status(403).json({ detail: 'Access denied' });
 };
 
 export const canAccessCustomer = (req: AuthRequest, res: Response, next: NextFunction) => {
   const customerId = req.params.customer_id || req.body.customer_id;
-  
+
   if (req.user?.role === 'admin') {
     return next();
   }
-  
+
   if (req.user?.customer_id === customerId) {
     return next();
   }
-  
+
   return res.status(403).json({ detail: 'You can only access your own data' });
 };

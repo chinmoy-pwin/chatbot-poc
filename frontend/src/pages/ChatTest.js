@@ -1,13 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import axios from "axios";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mic, MicOff, Send, Volume2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import api from "@/lib/api";
 
 export default function ChatTest() {
   const [messages, setMessages] = useState([]);
@@ -49,17 +46,17 @@ export default function ChatTest() {
     setLoading(true);
 
     try {
-      const response = await axios.post(`${API}/chat`, {
+      const response = await api.post(`/chat`, {
         customer_id: customerId,
         message: input,
         session_id: sessionId
       });
 
       setSessionId(response.data.session_id);
-      const assistantMessage = { 
-        role: "assistant", 
+      const assistantMessage = {
+        role: "assistant",
         content: response.data.response,
-        sources: response.data.sources 
+        sources: response.data.sources
       };
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
@@ -108,7 +105,7 @@ export default function ChatTest() {
       const formData = new FormData();
       formData.append('audio_file', audioBlob, 'recording.webm');
 
-      const response = await axios.post(`${API}/voice/stt`, formData);
+      const response = await api.post(`/voice/stt`, formData);
 
       setInput(response.data.transcribed_text);
       toast.success("Audio transcribed");
@@ -120,7 +117,7 @@ export default function ChatTest() {
   const speakText = async (text) => {
     setIsSpeaking(true);
     try {
-      const response = await axios.post(`${API}/voice/tts`, {
+      const response = await api.post(`/voice/tts`, {
         text: text,
         voice_id: "21m00Tcm4TlvDq8ikWAM"
       });
@@ -166,11 +163,10 @@ export default function ChatTest() {
                     className={`flex ${msgRole === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[70%] rounded-2xl px-4 py-3 ${
-                        msgRole === "user"
+                      className={`max-w-[70%] rounded-2xl px-4 py-3 ${msgRole === "user"
                           ? "bg-primary text-primary-foreground"
                           : "bg-secondary text-foreground"
-                      }`}
+                        }`}
                     >
                       <p className="whitespace-pre-wrap" data-testid={`message-content-${index}`}>{msgContent}</p>
                       {msgSources && msgSources.length > 0 && (

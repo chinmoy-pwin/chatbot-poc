@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Globe, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import api from "@/lib/api";
 
 export default function Scraping() {
   const [urls, setUrls] = useState(['']);
@@ -29,7 +26,7 @@ export default function Scraping() {
 
   const loadScrapedContent = async (customerId) => {
     try {
-      const response = await axios.get(`${API}/scrape/content/${customerId}`);
+      const response = await api.get(`/scrape/content/${customerId}`);
       setScrapedContent(response.data);
     } catch (error) {
       toast.error("Failed to load scraped content");
@@ -64,7 +61,7 @@ export default function Scraping() {
     }
 
     try {
-      await axios.post(`${API}/scrape/config`, {
+      await api.post(`/scrape/config`, {
         customer_id: customerId,
         urls: validUrls,
         schedule,
@@ -90,7 +87,7 @@ export default function Scraping() {
 
     setScraping(true);
     try {
-      const response = await axios.post(`${API}/scrape/manual`, {
+      const response = await api.post(`/scrape/manual`, {
         customer_id: customerId,
         urls: validUrls
       });
